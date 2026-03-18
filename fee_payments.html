@@ -46,15 +46,16 @@ button:disabled {
 
 <div class="container">
     <h2>Hostel Fee Dashboard</h2>
-
     <div id="fees"></div>
 </div>
 
 <script>
+// ✅ Base URL (auto switch local / production)
 const BASE_URL = window.location.hostname === "localhost"
   ? "http://localhost:3000"
   : "https://crrehostel.onrender.com";
 
+// ✅ Get logged-in user
 const user_id = localStorage.getItem("user_id");
 
 if (!user_id) {
@@ -62,21 +63,38 @@ if (!user_id) {
     window.location.href = "index.html";
 }
 
+// ✅ Store student info
 let reg_no = "";
+let unique_id = "";
 
+// ==============================
+// LOAD FEES
+// ==============================
 async function loadFees() {
     try {
-        // Step 1: Get reg_no
-        const regRes = await fetch(`${BASE_URL}/api/getRegNo/${user_id}`);
-        const regData = await regRes.json();
-        reg_no = regData.reg_no;
+        // 🔹 Step 1: Get student info (reg_no + unique_id)
+        const infoRes = await fetch(`${BASE_URL}/api/getStudentInfo/${user_id}`);
+        const info = await infoRes.json();
 
-        // Step 2: Get fees
+        if (!info.reg_no) {
+            alert("Student data not found");
+            return;
+        }
+
+        reg_no = info.reg_no;
+        unique_id = info.unique_id;
+
+        // 🔹 Step 2: Get fee details
         const res = await fetch(`${BASE_URL}/api/getFees?reg_no=${reg_no}`);
         const data = await res.json();
 
         const container = document.getElementById("fees");
         container.innerHTML = "";
+
+        if (!data.length) {
+            container.innerHTML = "<p>No fee data available</p>";
+            return;
+        }
 
         data.forEach(fee => {
             const div = document.createElement("div");
@@ -101,35 +119,65 @@ async function loadFees() {
     }
 }
 
+// ==============================
+// PAYMENT FUNCTION
+// ==============================
 function pay(type, amount) {
+    if (!amount || amount <= 0) {
+        alert("Nothing to pay");
+        return;
+    }
+
+    // 🔹 UPI link
     const upi = `upi://pay?pa=hostel@upi&pn=CRRHostel&am=${amount}&cu=INR`;
 
+    // 🔹 Open UPI (mobile only works properly)
     window.location.href = upi;
 
+    // 🔹 After payment → ask txn ID
     setTimeout(() => {
         const txn = prompt("Enter Transaction ID");
 
-        if (!txn) return;
+        if (!txn) {
+            alert("Transaction ID required");
+            return;
+        }
 
+        // 🔹 Send to backend
         fetch(`${BASE_URL}/api/addTransaction`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 reg_no,
+                unique_id,
                 fee_type: type,
                 amount,
                 transaction_id: txn
             })
         })
         .then(res => res.json())
-        .then(() => {
-            alert("Transaction submitted!");
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            alert("Transaction submitted successfully!");
             loadFees();
+        })
+        .catch(err => {
+            console.error("Transaction error:", err);
+            alert("Failed to submit transaction");
         });
+
     }, 3000);
 }
 
+// ==============================
+// INIT
+// ==============================
 loadFees();
 </script>
+
 </body>
 </html>

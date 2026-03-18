@@ -653,5 +653,51 @@ app.get('/api/getRegNo/:user_id', async (req, res) => {
     }
 });
 
+app.get('/api/getStudentInfo/:user_id', async (req, res) => {
+    try {
+        const { user_id } = req.params;
+
+        const [rows] = await db.query(
+            `SELECT reg_no, uniqueId 
+             FROM railway.students 
+             WHERE userId = ?`,
+            [user_id]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ error: "Student not found" });
+        }
+
+        res.json({
+            reg_no: rows[0].reg_no,
+            unique_id: rows[0].uniqueId
+        });
+
+    } catch (err) {
+        console.error("Student info error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+app.post('/api/addTransaction', async (req, res) => {
+    const { reg_no, unique_id, fee_type, amount, transaction_id } = req.body;
+
+    try {
+        await db.query(
+            `INSERT INTO student_transactions 
+            (reg_no, unique_id, fee_type, amount, transaction_id) 
+            VALUES (?, ?, ?, ?, ?)`,
+            [reg_no, unique_id, fee_type, amount, transaction_id]
+        );
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Transaction error:", err);
+        res.status(400).json({ error: "Duplicate or invalid transaction" });
+    }
+});
+
 // Start server
 app.listen(3000, () => console.log("Hostel Management Server running on port 3000"));
