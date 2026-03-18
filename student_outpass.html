@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student Outpass Request</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    padding: 20px;
+}
+.container {
+    max-width: 500px;
+    margin: auto;
+    background: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+}
+h2 {
+    text-align: center;
+}
+label {
+    font-weight: bold;
+}
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+}
+button {
+    width: 100%;
+    padding: 12px;
+    background: #007bff;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+button:hover {
+    background: #0056b3;
+}
+.status {
+    margin-top: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Outpass Request</h2>
+
+<form id="outpassForm">
+
+    <label>Student Name</label>
+    <input type="text" name="student_name" id="student_name" required readonly>
+
+    <!-- HIDDEN USER ID -->
+    <input type="hidden" name="user_id" id="user_id">
+
+    <label>Out Date & Time</label>
+    <input type="datetime-local" name="out_datetime" required>
+
+    <label>In Date & Time</label>
+    <input type="datetime-local" name="in_datetime" required>
+
+    <label>Reason</label>
+    <textarea name="reason" required></textarea>
+
+    <button type="submit">Submit Request</button>
+</form>
+
+<div class="status" id="statusMsg"></div>
+</div>
+
+<script>
+// ===============================
+//  AUTH CHECK
+// ===============================
+const userId = localStorage.getItem("user_id");
+
+if (!userId) {
+    alert("Session expired. Please login again.");
+    window.location.href = "login.html";
+}
+
+// Store user_id in hidden input
+document.getElementById("user_id").value = userId;
+
+// Fetch student name
+fetch(`http://localhost:3000/student/details/${userId}`)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("student_name").value = data.name;
+    });
+
+// ===============================
+//  SUBMIT OUTPASS REQUEST
+// ===============================
+document.getElementById("outpassForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const formData = {
+        student_name: this.student_name.value,
+        user_id: this.user_id.value,
+        out_datetime: this.out_datetime.value,
+        in_datetime: this.in_datetime.value,
+        reason: this.reason.value
+    };
+
+    const res = await fetch("http://localhost:3000/request-outpass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+    });
+
+    const data = await res.json();
+
+    document.getElementById("statusMsg").innerText =
+        data.success ? "Outpass request submitted successfully!" : "Failed to submit outpass";
+    
+    if (data.success) {
+        this.reset();
+        document.getElementById("student_name").value = formData.student_name;
+        document.getElementById("user_id").value = userId;
+    }
+});
+</script>
+
+</body>
+</html>

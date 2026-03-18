@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hostel Complaint</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+}
+
+/* ================= Sidebar ================= */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -220px;
+    width: 220px;
+    height: 100%;
+    background: #0b1c3c;
+    color: white;
+    padding-top: 60px;
+    transition: 0.3s;
+    z-index: 1000;
+}
+.sidebar a {
+    display: block;
+    padding: 15px;
+    color: white;
+    text-decoration: none;
+}
+.sidebar a:hover {
+    background: #1a3a60;
+}
+
+/* ================= Top Bar ================= */
+.topbar {
+    background: #0b1c3c;
+    color: white;
+    padding: 15px;
+}
+.menu-btn {
+    font-size: 22px;
+    cursor: pointer;
+}
+
+/* ================= Content ================= */
+.content {
+    padding: 20px;
+}
+
+/* ================= Container ================= */
+.container {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: bold;
+}
+
+select, textarea, button {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0 15px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+button {
+    background: #007bff;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+button:hover {
+    background: #0056b3;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= Top Bar ================= -->
+<div class="topbar">
+    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+    Hostel Complaint
+</div>
+
+<!-- ================= Sidebar ================= -->
+<div class="sidebar" id="sidebar">
+    <a href="student_dashboard.html">Student Details</a>
+    <a href="student_dashboard.html#">Outpass</a>
+    <a href="#">Complaint</a>
+</div>
+
+<!-- ================= Content ================= -->
+<div class="content">
+
+<div class="container">
+<h2>Raise a Complaint</h2>
+
+<form action="http://localhost:3000/student/submit-complaint" method="POST">
+
+    <!-- 🔒 HIDDEN FIELDS -->
+    <input type="hidden" name="user_id" id="user_id">
+    <input type="hidden" name="student_name" id="student_name">
+
+    <!-- CATEGORY -->
+    <label>Complaint Category</label>
+    <select name="category" required>
+        <option value="">-- Select Category --</option>
+        <option value="Electrical">Electrical</option>
+        <option value="Plumbing">Plumbing</option>
+        <option value="Carpentry">Carpentry</option>
+    </select>
+
+    <!-- LOCATION -->
+    <label>Location of Complaint</label>
+    <select name="location" required>
+        <option value="">-- Select Location --</option>
+        <option value="Room">Room</option>
+        <option value="Corridor">Corridor</option>
+        <option value="Bathroom">Bathroom</option>
+        <option value="Stairs">Near Stairs</option>
+        <option value="Other">Other</option>
+    </select>
+
+    <!-- DESCRIPTION -->
+    <label>Description</label>
+    <textarea 
+        name="description" 
+        placeholder="Describe the issue clearly..."
+        required></textarea>
+
+    <button type="submit">Submit Complaint</button>
+</form>
+
+</div>
+
+</div>
+<script>
+const sidebar = document.getElementById("sidebar");
+const userId = localStorage.getItem("user_id");
+
+if (!userId) {
+    alert("Session expired. Please login again.");
+    window.location.href = "login.html";
+}
+
+function toggleSidebar() {
+    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
+}
+
+/* ================= Fetch student data ================= */
+fetch(`http://localhost:3000/student/details/${userId}`)
+.then(res => res.json())
+.then(data => {
+    document.getElementById("user_id").value = data.user_id;
+    document.getElementById("student_name").value = data.name;
+})
+.catch(() => {
+    alert("Failed to load student details");
+});
+</script>
+
+
+</body>
+</html>

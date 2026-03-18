@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Warden Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+}
+
+/* Top bar */
+.topbar {
+    background: #0b1c3c;
+    color: white;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+}
+.menu-btn {
+    font-size: 22px;
+    cursor: pointer;
+    margin-right: 15px;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -220px;
+    width: 220px;
+    height: 100%;
+    background: #0b1c3c;
+    color: white;
+    padding-top: 60px;
+    transition: 0.3s;
+}
+.sidebar a {
+    display: block;
+    padding: 15px;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+}
+.sidebar a:hover {
+    background: #1a3a60;
+}
+
+/* Content */
+.content {
+    padding: 30px;
+    text-align: center;
+}
+.card {
+    background: white;
+    padding: 30px;
+    max-width: 600px;
+    margin: 40px auto;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+}
+.card h2 {
+    margin-bottom: 10px;
+}
+.card p {
+    color: #555;
+}
+</style>
+</head>
+
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+    <h2 style="margin:0;">Warden Dashboard</h2>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+    <a href="#" onclick="goAttendance()">Attendance</a>
+    <a href="#" onclick="goOutpass()">Outpass</a>
+    <a href="#" onclick="goAdmission()">Admission</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+    <div class="card">
+        <h2>Welcome, Warden</h2>
+        <p>
+            Use the sidebar menu to manage hostel attendance,  
+            student outpass approvals, and hostel admissions.
+        </p>
+    </div>
+</div>
+
+<script>
+const sidebar = document.getElementById("sidebar");
+
+function toggleSidebar() {
+    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
+}
+
+// Navigation functions
+function goAttendance() {
+    window.location.href = "hostel_attendence.html";
+}
+
+function goOutpass() {
+    // ✅ UPDATED HERE
+    window.location.href = "approve_outpass.html";
+}
+
+function goAdmission() {
+    window.location.href = "hostel-admissions.html";
+}
+</script>
+
+</body>
+</html>

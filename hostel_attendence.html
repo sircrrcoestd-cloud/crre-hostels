@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hostel Attendance</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ================= Global ================= */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+}
+
+/* ================= Top bar ================= */
+.topbar {
+    background: #0b1c3c;
+    color: white;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+}
+.menu-btn {
+    font-size: 22px;
+    cursor: pointer;
+    margin-right: 15px;
+}
+
+/* ================= Sidebar ================= */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -220px;
+    width: 220px;
+    height: 100%;
+    background: #0b1c3c;
+    color: white;
+    padding-top: 60px;
+    transition: 0.3s;
+    z-index: 1000;
+}
+.sidebar a {
+    display: block;
+    padding: 15px;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+}
+.sidebar a:hover {
+    background: #1a3a60;
+}
+
+/* ================= Content ================= */
+.content {
+    padding: 30px;
+}
+
+/* ================= Attendance UI (UNCHANGED) ================= */
+.container {
+    width: 90%;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.rooms {
+    white-space: nowrap;
+    overflow-x: auto;
+    padding: 10px;
+    border-bottom: 2px solid #ccc;
+    margin-top: 20px;
+}
+
+.room-box {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-right: 10px;
+    background: #007bff;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.room-box:hover {
+    background: #0056b3;
+}
+
+.student-row {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    background: #f2f2f2;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+.present-btn {
+    width: 25px;
+    height: 25px;
+    background: green;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.absent-btn {
+    width: 25px;
+    height: 25px;
+    background: red;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.submit-btn {
+    padding: 12px;
+    width: 100%;
+    background: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= TOP BAR ================= -->
+<div class="topbar">
+    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+    <h2 style="margin:0;">Warden Dashboard</h2>
+</div>
+
+<!-- ================= SIDEBAR ================= -->
+<div class="sidebar" id="sidebar">
+    <a href="hostel_attendence.html">Attendance</a>
+    <a href="approve_outpass.html">Outpass</a>
+    <a href="hostel-admissions.html">Admission</a>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="content">
+
+<div class="container">
+
+<h2>Hostel Attendance</h2>
+
+<label>Select Date</label>
+<input type="date" id="date">
+
+<label>Select Block</label>
+<select id="block">
+    <option value="">-- Select Block --</option>
+    <option value="Old Block">Old Block</option>
+    <option value="New Block">New Block</option>
+    <option value="Amenities Block">Amenities Block</option>
+    <option value="Gym Block">Gym Block</option>
+    <option value="D Block">D Block</option>
+    <option value="E Block">E Block</option>
+</select>
+
+<button onclick="loadRooms()" style="padding:10px;background:#007bff;color:white;border:none;border-radius:5px;">
+    Load Rooms
+</button>
+
+<div id="rooms" class="rooms"></div>
+<div id="student-section"></div>
+
+<button class="submit-btn" onclick="submitAttendance()">Submit Attendance</button>
+
+</div>
+</div>
+
+<script>
+/* ================= Sidebar ================= */
+const sidebar = document.getElementById("sidebar");
+
+function toggleSidebar() {
+    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
+}
+
+/* ================= Attendance Logic (UNCHANGED) ================= */
+let selectedRoom = null;
+let attendanceData = [];
+
+function loadRooms() {
+    const date = document.getElementById("date").value;
+    const block = document.getElementById("block").value;
+
+    if (!date || !block) {
+        alert("Please select Date and Block!");
+        return;
+    }
+
+    fetch(`http://localhost:3000/get-rooms/${block}`)
+        .then(res => res.json())
+        .then(data => {
+            let container = document.getElementById("rooms");
+            container.innerHTML = "";
+
+            data.forEach(r => {
+                let div = document.createElement("div");
+                div.className = "room-box";
+                div.innerText = r.room_number;
+                div.onclick = () => loadStudents(block, r.room_number);
+                container.appendChild(div);
+            });
+        });
+}
+
+function loadStudents(block, room) {
+    selectedRoom = room;
+    attendanceData = [];
+
+    fetch(`http://localhost:3000/get-students/${block}/${room}`)
+        .then(res => res.json())
+        .then(data => {
+            let section = document.getElementById("student-section");
+            section.innerHTML = "";
+
+            data.forEach(stu => {
+                let row = document.createElement("div");
+                row.className = "student-row";
+
+                let present = document.createElement("div");
+                present.className = "present-btn";
+
+                let absent = document.createElement("div");
+                absent.className = "absent-btn";
+
+                attendanceData.push({
+                    name: stu.name,
+                    attendance: null
+                });
+
+                present.onclick = () => {
+                    present.style.opacity = 1;
+                    absent.style.opacity = 0.3;
+                    updateAttendance(stu.name, "Present");
+                };
+
+                absent.onclick = () => {
+                    absent.style.opacity = 1;
+                    present.style.opacity = 0.3;
+                    updateAttendance(stu.name, "Absent");
+                };
+
+                row.innerHTML = `<b>${stu.name}</b>`;
+                row.appendChild(present);
+                row.appendChild(absent);
+
+                section.appendChild(row);
+            });
+        });
+}
+
+function updateAttendance(name, status) {
+    attendanceData = attendanceData.map(s =>
+        s.name === name ? { ...s, attendance: status } : s
+    );
+}
+
+function submitAttendance() {
+    const date = document.getElementById("date").value;
+    const block = document.getElementById("block").value;
+
+    if (!selectedRoom) {
+        alert("Please select a room!");
+        return;
+    }
+
+    fetch("http://localhost:3000/submit-attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            date,
+            block_name: block,
+            room_number: selectedRoom,
+            students: attendanceData
+        })
+    })
+    .then(res => res.json())
+    .then(() => {
+        alert("Attendance Submitted Successfully!");
+    });
+}
+</script>
+
+</body>
+</html>

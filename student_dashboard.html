@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+}
+
+/* ================= Sidebar ================= */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -220px;
+    width: 220px;
+    height: 100%;
+    background: #0b1c3c;
+    color: white;
+    padding-top: 60px;
+    transition: 0.3s;
+    z-index: 1000;
+}
+.sidebar a {
+    display: block;
+    padding: 15px;
+    color: white;
+    text-decoration: none;
+}
+.sidebar a:hover {
+    background: #1a3a60;
+}
+
+/* ================= Top bar ================= */
+.topbar {
+    background: #0b1c3c;
+    color: white;
+    padding: 15px;
+}
+.menu-btn {
+    font-size: 22px;
+    cursor: pointer;
+}
+
+/* ================= Content ================= */
+.content {
+    padding: 20px;
+}
+
+/* ================= Cards ================= */
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+}
+
+.details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+.box {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+}
+
+/* ================= Outpass Tree ================= */
+.tree {
+    text-align: center;
+    margin-top: 30px;
+}
+.tree button {
+    padding: 12px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+}
+.request { background: #007bff; color: white; }
+.approved { background: green; color: white; }
+.rejected { background: red; color: white; }
+.pending { background: orange; color: white; }
+
+/* ================= QR Cards ================= */
+.qr-card {
+    display: inline-block;
+    padding: 15px;
+    margin: 10px;
+    border-radius: 8px;
+    background: #f2f2f2;
+    text-align: center;
+}
+.qr-latest {
+    box-shadow: 0 0 18px 4px #00cc66;
+}
+.qr-old {
+    opacity: 0.5;
+}
+
+/* ================= Outpass Header ================= */
+.outpass-header {
+    background: #f0f4ff;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= Top Bar ================= -->
+<div class="topbar">
+    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+    Student Dashboard
+</div>
+
+<!-- ================= Sidebar ================= -->
+<div class="sidebar" id="sidebar">
+    <a href="#" onclick="showStudentDetails()">Student Details</a>
+    <a href="#" onclick="showOutpass()">Outpass</a>
+
+    <!-- ✅ NEW COMPLAINTS OPTION -->
+    <a href="complaints.html">Complaints</a>
+</div>
+
+
+<!-- ================= Content ================= -->
+<div class="content">
+
+<!-- ===== Student Details Section ===== -->
+<div class="container" id="studentSection">
+    <h2>Student Details</h2>
+    <div class="details" id="studentDetails"></div>
+</div>
+
+<!-- ===== Outpass Section ===== -->
+<div class="container" id="outpassSection" style="display:none;">
+    <h2>Outpass</h2>
+
+    <div class="outpass-header" id="outpassHeader"></div>
+
+    <div class="tree">
+        <button class="request" onclick="showOutpassForm()">Request Outpass</button><br>
+        <button class="approved" onclick="loadOutpasses('Approved')">Approved</button>
+        <button class="rejected" onclick="loadOutpasses('Rejected')">Rejected</button><br>
+        <button class="pending" onclick="loadOutpasses('Pending')">Pending</button>
+    </div>
+
+    <div id="outpassContent" style="margin-top:25px;"></div>
+</div>
+
+</div>
+
+<script>
+/* ================= Session ================= */
+const sidebar = document.getElementById("sidebar");
+const userId = localStorage.getItem("user_id");
+
+if (!userId) {
+    alert("Session expired. Please login again.");
+    window.location.href = "login.html";
+}
+
+/* ================= Sidebar ================= */
+function toggleSidebar() {
+    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
+}
+
+function showStudentDetails() {
+    sidebar.style.left = "-220px";
+    document.getElementById("studentSection").style.display = "block";
+    document.getElementById("outpassSection").style.display = "none";
+}
+
+function showOutpass() {
+    sidebar.style.left = "-220px";
+    document.getElementById("studentSection").style.display = "none";
+    document.getElementById("outpassSection").style.display = "block";
+}
+
+/* ================= Fetch Student Details ================= */
+fetch(`http://localhost:3000/student/details/${userId}`)
+.then(res => res.json())
+.then(data => {
+    document.getElementById("studentDetails").innerHTML = `
+        <div class="box"><b>Name:</b> ${data.name}</div>
+        <div class="box"><b>User ID:</b> ${data.user_id}</div>
+        <div class="box"><b>Application No:</b> ${data.application_number}</div>
+        <div class="box"><b>Academic Year:</b> ${data.academic_year}</div>
+        <div class="box"><b>Course:</b> ${data.course_year}</div>
+        <div class="box"><b>Branch:</b> ${data.branch}</div>
+        <div class="box"><b>Block:</b> ${data.block_name}</div>
+        <div class="box"><b>Room No:</b> ${data.room_number}</div>
+    `;
+
+    document.getElementById("outpassHeader").innerHTML =
+        `Student Name: <b>${data.name}</b> &nbsp; | &nbsp; User ID: <b>${data.user_id}</b>`;
+});
+
+/* ================= Show Outpass Form ================= */
+function showOutpassForm() {
+    document.getElementById("outpassContent").innerHTML = `
+        <iframe src="student_outpass.html"
+                width="100%"
+                height="520"
+                style="border:none;border-radius:8px;">
+        </iframe>
+    `;
+}
+
+/* ================= Load Outpasses ================= */
+function loadOutpasses(status) {
+    fetch(`http://localhost:3000/student/outpasses/${userId}`)
+    .then(res => res.json())
+    .then(rows => {
+        const filtered = rows.filter(r => r.status === status);
+        let html = "";
+
+        if (filtered.length === 0) {
+            document.getElementById("outpassContent").innerHTML =
+                `<p style="text-align:center;">No ${status} outpasses found</p>`;
+            return;
+        }
+
+        filtered.forEach((r, index) => {
+            if (status === "Approved") {
+                const cls = index === 0 ? "qr-card qr-latest" : "qr-card qr-old";
+                html += `
+                    <div class="${cls}">
+                        <img src="http://localhost:3000/outpass-qr/${r.qr_token}" width="130"><br>
+                        <small>Approved at:</small><br>
+                        ${new Date(r.approved_at).toLocaleString()}
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="qr-card">
+                        <b>${status}</b><br>
+                        ${new Date(r.created_at).toLocaleString()}
+                    </div>
+                `;
+            }
+        });
+
+        document.getElementById("outpassContent").innerHTML = html;
+    })
+    .catch(() => {
+        document.getElementById("outpassContent").innerHTML =
+            "<p style='color:red;'>Failed to load outpass data</p>";
+    });
+}
+</script>
+
+</body>
+</html>

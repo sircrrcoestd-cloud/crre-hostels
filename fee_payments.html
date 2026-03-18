@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hostel Fee Dashboard</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+
+.card {
+    background: #1e293b;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    background: #22c55e;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:disabled {
+    background: gray;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Hostel Fee Dashboard</h2>
+
+    <div id="fees"></div>
+</div>
+
+<script>
+const reg_no = "23B81A4654"; // dynamic later
+
+async function loadFees() {
+    const res = await fetch(`/api/getFees?reg_no=${reg_no}`);
+    const data = await res.json();
+
+    const container = document.getElementById("fees");
+    container.innerHTML = "";
+
+    data.forEach(fee => {
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+            <div>
+                <h3>${fee.type}</h3>
+                <p>Amount: ₹${fee.amount}</p>
+            </div>
+            <button onclick="pay('${fee.type}', ${fee.amount})" ${fee.amount <= 0 ? "disabled" : ""}>
+                Pay
+            </button>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+function pay(type, amount) {
+    const upi = `upi://pay?pa=hostel@upi&pn=CRRHostel&am=${amount}&cu=INR`;
+
+    window.location.href = upi;
+
+    setTimeout(() => {
+        const txn = prompt("Enter Transaction ID");
+
+        if (!txn) return;
+
+        fetch("/api/addTransaction", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                reg_no,
+                fee_type: type,
+                amount,
+                transaction_id: txn
+            })
+        })
+        .then(res => res.json())
+        .then(() => {
+            alert("Transaction submitted!");
+            loadFees();
+        });
+    }, 3000);
+}
+
+loadFees();
+</script>
+
+</body>
+</html>

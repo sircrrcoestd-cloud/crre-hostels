@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hostel Admission Form</title>
+
+<style>
+/* ================= Global ================= */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+}
+
+/* ================= Top bar ================= */
+.topbar {
+    background: #0b1c3c;
+    color: white;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+}
+.menu-btn {
+    font-size: 22px;
+    cursor: pointer;
+    margin-right: 15px;
+}
+
+/* ================= Sidebar ================= */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -220px;
+    width: 220px;
+    height: 100%;
+    background: #0b1c3c;
+    color: white;
+    padding-top: 60px;
+    transition: 0.3s;
+    z-index: 1000;
+}
+.sidebar a {
+    display: block;
+    padding: 15px;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+}
+.sidebar a:hover {
+    background: #1a3a60;
+}
+
+/* ================= Content ================= */
+.content {
+    padding: 30px;
+}
+
+/* ================= Form ================= */
+.container {
+    width: 80%;
+    margin: auto;
+    background: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #ccc;
+}
+
+h2 {
+    text-align: center;
+    color: #ffffff;
+}
+
+h1 {
+    text-align: center;
+    color: #040404;
+}
+
+label {
+    font-weight: bold;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.medical-box {
+    display: none;
+    padding: 15px;
+    background: #f8f8f8;
+    border-left: 4px solid #007bff;
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    background: #007bff;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+</style>
+
+<script>
+function toggleMedical() {
+    const value = document.getElementById("has_medical_issue").value;
+    document.getElementById("medical_fields").style.display =
+        value === "yes" ? "block" : "none";
+}
+
+function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
+}
+</script>
+
+</head>
+<body>
+
+<!-- ================= TOP BAR ================= -->
+<div class="topbar">
+    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+    <h2 style="margin:0;">Warden Dashboard</h2>
+</div>
+
+<!-- ================= SIDEBAR ================= -->
+<div class="sidebar" id="sidebar">
+    <a href="hostel_attendence.html">Attendance</a>
+    <a href="approve_outpass.html">Outpass</a>
+    <a href="hostel-admissions.html">Admission</a>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="content">
+
+<div class="container">
+<h1>Hostel Admission Form</h1>
+
+<form method="POST" action="http://localhost:3000/submit-hostel-form">
+
+    <!-- LOGIN / USER ACCOUNT DETAILS -->
+    <label>User ID</label>
+    <input type="text" name="user_id" required>
+
+    <label>Password</label>
+    <input type="password" name="password" required>
+
+    <hr>
+
+    <!-- ACADEMIC DETAILS -->
+    <label>Academic Year</label>
+    <input type="text" name="academic_year" required>
+
+    <label>Application Number</label>
+    <input type="text" name="application_number" required>
+
+    <label>Name</label>
+    <input type="text" name="name" required>
+
+    <label>Father / Guardian Name</label>
+    <input type="text" name="father_name" required>
+
+    <label>Father Occupation</label>
+    <input type="text" name="father_occupation">
+
+    <label>Mother Name</label>
+    <input type="text" name="mother_name">
+
+    <label>Mother Occupation</label>
+    <input type="text" name="mother_occupation">
+
+    <label>Date of Birth</label>
+    <input type="date" name="date_of_birth" required>
+
+    <label>Blood Group</label>
+    <input type="text" name="blood_group">
+
+    <label>Permanent Address</label>
+    <textarea name="permanent_address" required></textarea>
+
+    <label>Present Address</label>
+    <textarea name="present_address" required></textarea>
+
+    <label>Course & Year</label>
+    <input type="text" name="course_year">
+
+    <label>Branch</label>
+    <input type="text" name="branch">
+
+    <label>Roll Number</label>
+    <input type="text" name="roll_number">
+
+    <!-- CONTACT DETAILS -->
+    <label>Emergency Contact - Father</label>
+    <input type="text" name="emergency_contact_father">
+
+    <label>Emergency Contact - Mother</label>
+    <input type="text" name="emergency_contact_mother">
+
+    <label>Emergency Contact - Guardian</label>
+    <input type="text" name="emergency_contact_guardian">
+
+    <label>Contact Number of Inmate</label>
+    <input type="text" name="inmate_contact">
+
+    <label>Local Guardian Contact</label>
+    <input type="text" name="local_guardian_contact">
+
+    <!-- HOSTEL DETAILS -->
+    <label>Block Name</label>
+    <select name="block_name" required>
+        <option value="">-- Select Block --</option>
+        <option>Old Block</option>
+        <option>New Block</option>
+        <option>Amenities Block</option>
+        <option>Gym Block</option>
+        <option>D Block</option>
+        <option>E Block</option>
+    </select>
+
+    <label>Room Number</label>
+    <input type="text" name="room_number" required>
+
+    <!-- MEDICAL DETAILS -->
+    <label>Do you have any recurring medical problems?</label>
+    <select name="has_medical_issue" id="has_medical_issue" onchange="toggleMedical()">
+        <option value="no">No</option>
+        <option value="yes">Yes</option>
+    </select>
+
+    <div id="medical_fields" class="medical-box">
+        <label>Specify the drug used</label>
+        <textarea name="medical_drug_used"></textarea>
+
+        <label>Drugs you are allergic to</label>
+        <textarea name="drug_allergy"></textarea>
+    </div>
+
+    <!-- DECLARATIONS -->
+    <h3 style="text-align:center;">DECLARATION</h3>
+
+    <label>
+        <input type="checkbox" name="student_declaration" required>
+        I declare the above information is true.
+    </label><br><br>
+
+    <label>
+        <input type="checkbox" name="parent_declaration" required>
+        I take responsibility for my ward.
+    </label><br><br>
+
+    <button type="submit">Submit Application</button>
+
+</form>
+</div>
+
+</div>
+
+</body>
+</html>

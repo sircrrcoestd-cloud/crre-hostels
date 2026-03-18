@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Warden Outpass Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ================= Global ================= */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+}
+
+/* ================= Top bar ================= */
+.topbar {
+    background: #0b1c3c;
+    color: white;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+}
+.menu-btn {
+    font-size: 22px;
+    cursor: pointer;
+    margin-right: 15px;
+}
+
+/* ================= Sidebar ================= */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -220px;
+    width: 220px;
+    height: 100%;
+    background: #0b1c3c;
+    color: white;
+    padding-top: 60px;
+    transition: 0.3s;
+    z-index: 1000;
+}
+.sidebar a {
+    display: block;
+    padding: 15px;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+}
+.sidebar a:hover {
+    background: #1a3a60;
+}
+
+/* ================= Content ================= */
+.content {
+    padding: 30px;
+}
+
+/* ================= Table UI ================= */
+.container {
+    width: 95%;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+th {
+    background: #007bff;
+    color: white;
+}
+
+/* ================= Buttons ================= */
+.approve {
+    background: green;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.reject {
+    background: red;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.qr-btn {
+    background: #333;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.status-Pending { color: orange; font-weight: bold; }
+.status-Approved { color: green; font-weight: bold; }
+.status-Rejected { color: red; font-weight: bold; }
+
+/* ================= QR Modal ================= */
+.qr-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+}
+
+.qr-content {
+    background: white;
+    padding: 20px;
+    margin: 10% auto;
+    width: 300px;
+    text-align: center;
+    border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= TOP BAR ================= -->
+<div class="topbar">
+    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
+    <h2 style="margin:0;">Warden Dashboard</h2>
+</div>
+
+<!-- ================= SIDEBAR ================= -->
+<div class="sidebar" id="sidebar">
+    <a href="hostel_attendence.html">Attendance</a>
+    <a href="approve_outpass.html">Outpass</a>
+    <a href="hostel-admissions.html">Admission</a>
+</div>
+
+<!-- ================= CONTENT ================= -->
+<div class="content">
+
+<div class="container">
+<h2>Warden Outpass Approval Panel</h2>
+
+<table>
+<thead>
+<tr>
+    <th>Student</th>
+    <th>Out Date</th>
+    <th>In Date</th>
+    <th>Reason</th>
+    <th>Status</th>
+    <th>Action</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
+
+</div>
+
+<!-- ================= QR MODAL ================= -->
+<div id="qrModal" class="qr-modal">
+    <div class="qr-content">
+        <h3>Outpass QR</h3>
+        <div id="qrImage"></div>
+        <br>
+        <button onclick="closeQR()">Close</button>
+    </div>
+</div>
+
+<script>
+/* ================= Sidebar ================= */
+const sidebar = document.getElementById("sidebar");
+
+function toggleSidebar() {
+    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
+}
+
+/* ================= Outpass Logic (UNCHANGED) ================= */
+document.addEventListener("DOMContentLoaded", loadRequests);
+
+function loadRequests() {
+    fetch("http://localhost:3000/warden/outpass-requests")
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
+
+            data.forEach(r => {
+                const tr = document.createElement("tr");
+
+                let actionHTML = "-";
+
+                if (r.status === "Pending") {
+                    actionHTML = `
+                        <button class="approve" onclick="approve(${r.id})">Accept</button>
+                        <button class="reject" onclick="rejectReq(${r.id})">Reject</button>
+                    `;
+                } else if (r.status === "Approved") {
+                    actionHTML = `
+                        <button class="qr-btn" onclick="showQR('${r.qr_token}')">
+                            View QR
+                        </button>
+                    `;
+                }
+
+                tr.innerHTML = `
+                    <td>${r.student_name}</td>
+                    <td>${new Date(r.out_datetime).toLocaleString()}</td>
+                    <td>${new Date(r.in_datetime).toLocaleString()}</td>
+                    <td>${r.reason}</td>
+                    <td class="status-${r.status}">${r.status}</td>
+                    <td>${actionHTML}</td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        });
+}
+
+function approve(id) {
+    if (!confirm("Approve this outpass?")) return;
+
+    fetch(`http://localhost:3000/warden/approve-outpass/${id}`, {
+        method: "POST"
+    })
+    .then(() => {
+        alert("Outpass Approved");
+        loadRequests();
+    });
+}
+
+function rejectReq(id) {
+    if (!confirm("Reject this outpass?")) return;
+
+    fetch(`http://localhost:3000/warden/reject-outpass/${id}`, {
+        method: "POST"
+    })
+    .then(() => {
+        alert("Outpass Rejected");
+        loadRequests();
+    });
+}
+
+function showQR(token) {
+    document.getElementById("qrImage").innerHTML =
+        `<img src="http://localhost:3000/outpass-qr/${token}" width="200">`;
+    document.getElementById("qrModal").style.display = "block";
+}
+
+function closeQR() {
+    document.getElementById("qrModal").style.display = "none";
+}
+</script>
+
+</body>
+</html>
