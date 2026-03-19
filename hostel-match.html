@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload Hostel CSV</title>
+</head>
+<body>
+
+<h2>Upload Hostel Students CSV</h2>
+
+<form id="uploadForm" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".csv" required />
+  <button type="submit">Upload</button>
+</form>
+
+<p id="status"></p>
+
+<script>
+document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+
+  try {
+    const res = await fetch("/upload-hostel", {
+      method: "POST",
+      body: formData
+    });
+
+    const text = await res.text(); // 👈 first read as text
+
+    try {
+      const data = JSON.parse(text); // 👈 then parse
+
+      document.getElementById("status").innerText =
+        `Total: ${data.total_rows}
+Matched: ${data.matched_updated}
+Not Matched: ${data.not_matched}
+Errors: ${data.errors}`;
+
+    } catch (e) {
+      console.error("Not JSON:", text);
+      document.getElementById("status").innerText =
+        "Server error (HTML response). Check backend logs.";
+    }
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById("status").innerText = "Request failed";
+  }
+});
+</script>
+
+</body>
+</html>

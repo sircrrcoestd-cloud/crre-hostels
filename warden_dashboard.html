@@ -8,11 +8,11 @@
 <style>
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: Arial;
     background: #eef2f7;
 }
 
-/* Top bar */
+/* Topbar */
 .topbar {
     background: #0b1c3c;
     color: white;
@@ -20,211 +20,302 @@ body {
     display: flex;
     align-items: center;
 }
-.menu-btn {
-    font-size: 22px;
-    cursor: pointer;
-    margin-right: 15px;
+
+/* Grid Layout */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 20px;
 }
 
-/* Sidebar */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: -220px;
-    width: 220px;
-    height: 100%;
-    background: #0b1c3c;
-    color: white;
-    padding-top: 60px;
-    transition: 0.3s;
-}
-.sidebar a {
-    display: block;
-    padding: 15px;
-    color: white;
-    text-decoration: none;
-    font-size: 16px;
-}
-.sidebar a:hover {
-    background: #1a3a60;
-}
-
-/* Content */
-.content {
-    padding: 30px;
-    text-align: center;
-}
+/* Card */
 .card {
     background: white;
-    padding: 30px;
-    max-width: 600px;
-    margin: 40px auto;
-    border-radius: 10px;
-    box-shadow: 0 0 10px #ccc;
-}
-.card h2 {
-    margin-bottom: 10px;
-}
-.card p {
-    color: #555;
-}
-
-#studentList {
-    margin-top: 20px;
-}
-
-.student-card {
-    background: white;
     padding: 15px;
-    margin: 15px auto;
-    max-width: 700px;
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
     box-shadow: 0 0 10px #ccc;
+    cursor: pointer;
     transition: 0.3s;
 }
-
-.student-card:hover {
-    transform: scale(1.02);
+.card:hover {
+    transform: scale(1.03);
 }
 
-.student-card img {
-    width: 70px;
-    height: 70px;
+.card img {
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
 }
 
-.details {
-    flex: 1;
-    text-align: left;
+.red { color: red; }
+.green { color: green; }
+
+/* Filter bar */
+.filter-bar {
+    padding: 15px;
+    text-align: center;
+}
+select, button {
+    padding: 10px;
+    margin: 5px;
 }
 
-.backlogs {
-    font-weight: bold;
-    font-size: 16px;
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
 }
-
-.red { color: #e11d48; }
-.green { color: #16a34a; }
-
+.modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 20px;
+    width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
+    border-radius: 10px;
+}
+.close {
+    float: right;
+    cursor: pointer;
+    font-size: 20px;
+}
 </style>
 </head>
 
 <body>
 
-<!-- TOP BAR -->
 <div class="topbar">
-    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
-    <h2 style="margin:0;">Warden Dashboard</h2>
+    <h2>Warden Dashboard</h2>
 </div>
 
-<!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
-    <a href="#" onclick="goAttendance()">Attendance</a>
-    <a href="#" onclick="goOutpass()">Outpass</a>
-    <a href="#" onclick="goAdmission()">Admission</a>
+<!-- FILTER + DOWNLOAD -->
+<div class="filter-bar">
+    <select id="yearFilter">
+        <option value="ALL">All Years</option>
+        <option value="1">1st Year</option>
+        <option value="2">2nd Year</option>
+        <option value="3">3rd Year</option>
+        <option value="4">4th Year</option>
+    </select>
+    <select id="branchFilter">
+    <option value="ALL">All Branches</option>
+</select>
+
+    <button onclick="applyFilter()">Filter</button>
+    <button onclick="downloadPDF()">Download Backlog PDF</button>
 </div>
 
-<!-- MAIN CONTENT -->
-<div class="content">
-    <div class="card" id="welcomeCard">
-        <h2>Welcome, Warden</h2>
-        <p>
-            Use the sidebar menu to manage hostel attendance,  
-            student outpass approvals, and hostel admissions.
-        </p>
-    </div>
+<!-- STUDENT GRID -->
+<div class="grid" id="studentGrid"></div>
 
-    <!-- Student List Section -->
-    <div id="studentSection" style="display:none;">
-        <h2>Hostel Admission Renewal</h2>
-        <div id="studentList"></div>
+<!-- MODAL -->
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">✖</span>
+        <div id="modalContent"></div>
     </div>
 </div>
 
 <script>
-const sidebar = document.getElementById("sidebar");
+let allStudents = [];
 
-function toggleSidebar() {
-    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
-}
+// ✅ LOAD DATA
+window.onload = () => {
+    loadStudents();
+    loadBranches();
+};
 
-// Navigation functions
-function goAttendance() {
-    window.location.href = "hostel_attendence.html";
-}
+async function loadStudents() {
+    const userId = localStorage.getItem("user_id");
 
-function goOutpass() {
-    window.location.href = "approve_outpass.html";
-}
+    const year = document.getElementById("yearFilter").value;
+    const branch = document.getElementById("branchFilter").value;
 
-// ✅ UPDATED FUNCTION
-async function goAdmission() {
+    const url = `/api/hostel/students?year=${year}&branch=${branch}`;
 
-    // Hide welcome card
-    document.getElementById("welcomeCard").style.display = "none";
+    const res = await fetch(url, {
+        headers: { "x-user-id": userId }
+    });
 
-    // Show student section
-    document.getElementById("studentSection").style.display = "block";
+    const data = await res.json();
 
-    const container = document.getElementById("studentList");
-    container.innerHTML = "Loading...";
-
-    try {
-        const res = await fetch("/api/hostel/students");
-        const data = await res.json();
-
-        container.innerHTML = "";
-
-        if (data.length === 0) {
-            container.innerHTML = "<p>No students found</p>";
-            return;
-        }
-
-        data.forEach(student => {
-
-            let status = "Eligible ✅";
-            let statusColor = "green";
-
-            if (student.backlogs > 5) {
-                status = "Not Eligible ❌";
-                statusColor = "red";
-            }
-
-            const card = document.createElement("div");
-            card.className = "student-card";
-
-            card.innerHTML = `
-                <img src="${student.photo_url || 'https://via.placeholder.com/70'}">
-
-                <div class="details">
-                    <h3>${student.name}</h3>
-                    <p>Reg No: ${student.reg_no}</p>
-                    <p>${student.course} - ${student.year}</p>
-                    <p>Section: ${student.section}</p>
-                    <p>Mobile: ${student.mobile_no}</p>
-                </div>
-
-                <div>
-                    <p class="backlogs ${student.backlogs > 0 ? 'red' : 'green'}">
-                        Backlogs: ${student.backlogs}
-                    </p>
-                    <p class="${statusColor}">
-                        ${status}
-                    </p>
-                </div>
-            `;
-
-            container.appendChild(card);
-        });
-
-    } catch (error) {
-        console.error(error);
-        container.innerHTML = "<p>Error loading students</p>";
+    if (!Array.isArray(data)) {
+        alert(data.message);
+        return;
     }
+
+    allStudents = data;
+    renderStudents(data);
+}
+
+// ✅ RENDER GRID
+function renderStudents(data) {
+    const grid = document.getElementById("studentGrid");
+    grid.innerHTML = "";
+
+    data.forEach(s => {
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.onclick = () => showDetails(s);
+
+        card.innerHTML = `
+            <img src="${s.photo_url || 'https://via.placeholder.com/60'}">
+            <h3>${s.name}</h3>
+            <p>${s.reg_no}</p>
+            <p>${s.course}</p>
+            <p class="${s.backlogs > 0 ? 'red' : 'green'}">
+                Backlogs: ${s.backlogs}
+            </p>
+        `;
+
+        grid.appendChild(card);
+    });
+}
+
+
+// ✅ FILTER
+function applyFilter() {
+    const year = document.getElementById("yearFilter").value;
+
+    if (year === "ALL") {
+        renderStudents(allStudents);
+        return;
+    }
+
+    const filtered = allStudents.filter(s => s.year.includes(year));
+    renderStudents(filtered);
+    loadStudents(); //
+}
+
+// ✅ MODAL DETAILS (ALL DATA)
+async function showDetails(s) {
+
+    const userId = localStorage.getItem("user_id");
+
+    const res = await fetch(`/api/hostel/student/${s.reg_no}`, {
+        headers: {
+            "x-user-id": userId
+        }
+    });
+
+    const data = await res.json();
+
+    if (!data || data.message) {
+        alert(data.message || "Error loading details");
+        return;
+    }
+
+    const modal = document.getElementById("modal");
+    const content = document.getElementById("modalContent");
+
+    content.innerHTML = `
+        <h2>${data.name}</h2>
+
+        <p><b>Reg No:</b> ${data.reg_no}</p>
+        <p><b>User ID:</b> ${data.userId}</p>
+        <p><b>Course:</b> ${data.course}</p>
+        <p><b>Year:</b> ${data.year}</p>
+        <p><b>Semester:</b> ${data.semester}</p>
+        <p><b>Section:</b> ${data.section}</p>
+
+        <hr>
+
+        <p><b>Mobile:</b> ${data.mobile_no}</p>
+        <p><b>Email:</b> ${data.email}</p>
+        <p><b>Aadhar:</b> ${data.aadhar_no}</p>
+        <p><b>APAAR ID:</b> ${data.apaar_id}</p>
+
+        <hr>
+
+        <p><b>Father Name:</b> ${data.father_name}</p>
+        <p><b>Father Mobile:</b> ${data.father_mobile}</p>
+
+        <hr>
+
+        <p><b>Address:</b> ${data.address}</p>
+        <p><b>Village:</b> ${data.village}</p>
+        <p><b>Mandal:</b> ${data.mandal}</p>
+        <p><b>District:</b> ${data.district}</p>
+        <p><b>State:</b> ${data.state}</p>
+        <p><b>Pincode:</b> ${data.pincode}</p>
+
+        <hr>
+
+        <p><b>Counsellor:</b> ${data.counsellor_name}</p>
+        <p><b>Counsellor Mobile:</b> ${data.counsellor_mobile}</p>
+
+        <hr>
+
+        <p><b>Joining Date:</b> ${data.joining_date}</p>
+        <p><b>Admission Type:</b> ${data.admission_type}</p>
+        <p><b>Residence:</b> ${data.residence_type}</p>
+
+        <hr>
+
+        <h3 style="color:${data.backlogs > 0 ? 'red' : 'green'}">
+            Backlogs: ${data.backlogs}
+        </h3>
+    `;
+
+    modal.style.display = "block";
+}
+// CLOSE MODAL
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+// CLOSE ON OUTSIDE CLICK
+window.onclick = function(e) {
+    if (e.target.id === "modal") closeModal();
+}
+
+function downloadPDF() {
+    const userId = localStorage.getItem("user_id");
+    const year = document.getElementById("yearFilter").value;
+    const branch = document.getElementById("branchFilter").value;
+
+    const url = `/api/hostel/download-pdf?year=${year}&branch=${branch}`;
+
+    fetch(url, {
+        headers: {
+            "x-user-id": userId
+        }
+    })
+    .then(res => res.blob())
+    .then(blob => {
+        const link = document.createElement("a");
+        link.href = window.URL.createObjectURL(blob);
+        link.download = "backlog_report.pdf";
+        link.click();
+    });
+}
+async function loadBranches() {
+    const userId = localStorage.getItem("user_id");
+
+    const res = await fetch("/api/hostel/branches", {
+        headers: { "x-user-id": userId }
+    });
+
+    const data = await res.json();
+
+    const select = document.getElementById("branchFilter");
+
+    data.forEach(b => {
+        const option = document.createElement("option");
+        option.value = b.course;
+        option.textContent = b.course;
+        select.appendChild(option);
+    });
 }
 </script>
+
 </body>
 </html>

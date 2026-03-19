@@ -6,9 +6,7 @@ const app = express();
 const crypto = require("crypto");
 const QRCode = require("qrcode");
 const bcrypt = require("bcrypt");
-
-
-const cors = require("cors");
+const PDFDocument = require("pdfkit");const cors = require("cors");
 app.use(cors());
 
 // Middleware
@@ -700,10 +698,14 @@ app.post('/api/addTransaction', async (req, res) => {
 });
 
 // routes/hostel.js
-
 app.get("/api/hostel/students", async (req, res) => {
     try {
-        const userId = req.user.userid; // from session / JWT
+        const userId = req.headers["x-user-id"];
+        const { year, branch } = req.query;
+
+        if (!userId) {
+            return res.status(401).json({ message: "User ID missing" });
+        }
 
         let hostelType;
 
@@ -713,6 +715,19 @@ app.get("/api/hostel/students", async (req, res) => {
             hostelType = "GIRLS_HOSTEL";
         } else {
             return res.status(403).json({ message: "Unauthorized Access" });
+        }
+
+        let filters = "WHERE s.residence_type = ?";
+        let params = [hostelType];
+
+        if (year && year !== "ALL") {
+            filters += " AND s.year LIKE ?";
+            params.push(`%${year}%`);
+        }
+
+        if (branch && branch !== "ALL") {
+            filters += " AND s.course = ?";
+            params.push(branch);
         }
 
         const query = `
@@ -727,37 +742,222 @@ app.get("/api/hostel/students", async (req, res) => {
                 s.photo_url,
                 s.residence_type,
                 COALESCE(b.total_backlogs, 0) AS backlogs
-            FROM students s
+            FROM railway.students s
             LEFT JOIN (
                 SELECT regno, COUNT(*) AS total_backlogs
                 FROM (
-                    -- JNTUK
-                    SELECT regno, subcode
-                    FROM results
-                    WHERE grade IN ('F', 'Ab', 'NOT_COMPLETED')
+                    SELECT regno FROM railway.results
+                    WHERE grade IN ('F','Ab','NOT_COMPLETED')
 
                     UNION ALL
 
-                    -- Autonomous (UPDATED)
-                    SELECT regno, subcode
-                    FROM autonomous_results
-                    WHERE grade IN ('F', 'Ab', '-Ab-')
-                ) AS combined
+                    SELECT regno FROM railway.autonomous_results
+                    WHERE grade IN ('F','Ab','-Ab-')
+                ) x
                 GROUP BY regno
             ) b ON s.reg_no = b.regno
-            WHERE s.residence_type = ?
+            ${filters}
             ORDER BY backlogs DESC
         `;
 
-        const [students] = await db.execute(query, [hostelType]);
+        const [students] = await db.execute(query, params);
 
         res.json(students);
 
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server Error" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
     }
 });
+app.get("/api/hostel/student/:reg_no", async (req, res) => {
+    try {
+        const userId = req.headers["x-user-id"];
+        const reg_no = req.params.reg_no;
+
+        if (!userId) {
+            return res.status(401).json({ message: "User ID missing" });
+        }
+
+        let hostelType;
+
+        if (userId.startsWith("BH")) {
+            hostelType = "BOYS_HOSTEL";
+        } else if (userId.startsWith("GH")) {
+            hostelType = "GIRLS_HOSTEL";
+        } else {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        const query = `
+            SELECT 
+                s.*,
+                COALESCE(b.total_backlogs, 0) AS backlogs
+            FROM railway.students s
+            LEFT JOIN (
+                SELECT regno, COUNT(*) AS total_backlogs
+                FROM (
+                    SELECT regno FROM railway.results
+                    WHERE grade IN ('F','Ab','NOT_COMPLETED')
+
+                    UNION ALL
+
+                    SELECT regno FROM railway.autonomous_results
+                    WHERE grade IN ('F','Ab','-Ab-')
+                ) x
+                GROUP BY regno
+            ) b ON s.reg_no = b.regno
+            WHERE s.reg_no = ?
+            AND s.residence_type = ?
+        `;
+
+        const [rows] = await db.execute(query, [reg_no, hostelType]);
+
+        if (!rows.length) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        res.json(rows[0]);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.get("/api/hostel/branches", async (req, res) => {
+    try {
+        const userId = req.headers["x-user-id"];
+
+        if (!userId) {
+            return res.status(401).json({ message: "User ID missing" });
+        }
+
+        let hostelType;
+
+        if (userId.startsWith("BH")) {
+            hostelType = "BOYS_HOSTEL";
+        } else if (userId.startsWith("GH")) {
+            hostelType = "GIRLS_HOSTEL";
+        } else {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        const [rows] = await db.execute(`
+            SELECT DISTINCT course 
+            FROM railway.students
+            WHERE residence_type = ?
+            ORDER BY course
+        `, [hostelType]);
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.get("/api/hostel/download-pdf", async (req, res) => {
+    try {
+        const userId = req.headers["x-user-id"];
+        const year = req.query.year;
+
+        if (!userId) {
+            return res.status(401).json({ message: "User ID missing" });
+        }
+
+        let hostelType;
+
+        if (userId.startsWith("BH")) {
+            hostelType = "BOYS_HOSTEL";
+        } else if (userId.startsWith("GH")) {
+            hostelType = "GIRLS_HOSTEL";
+        } else {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        // ✅ QUERY WITH FILTER
+        let yearFilter = "";
+        let params = [hostelType];
+
+       const branch = req.query.branch;
+
+if (branch && branch !== "ALL") {
+    yearFilter += " AND s.course = ?";
+    params.push(branch);
+}
+
+        const query = `
+            SELECT 
+                s.reg_no,
+                s.name,
+                s.course,
+                COALESCE(b.total_backlogs, 0) AS backlogs
+            FROM railway.students s
+            LEFT JOIN (
+                SELECT regno, COUNT(*) AS total_backlogs
+                FROM (
+                    SELECT regno FROM railway.results
+                    WHERE grade IN ('F','Ab','NOT_COMPLETED')
+
+                    UNION ALL
+
+                    SELECT regno FROM railway.autonomous_results
+                    WHERE grade IN ('F','Ab','-Ab-')
+                ) x
+                GROUP BY regno
+            ) b ON s.reg_no = b.regno
+            WHERE s.residence_type = ?
+            ${yearFilter}
+            ORDER BY backlogs DESC
+        `;
+
+        const [students] = await db.execute(query, params);
+
+        // ✅ CREATE PDF
+        const doc = new PDFDocument({ margin: 30, size: "A4" });
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            "attachment; filename=backlog_report.pdf"
+        );
+
+        doc.pipe(res);
+
+        // ✅ TITLE
+        doc.fontSize(18).text("Hostel Backlog Report", { align: "center" });
+        doc.moveDown();
+
+        doc.fontSize(12).text(`Hostel: ${hostelType}`);
+        doc.text(`Year: ${year || "ALL"}`);
+        doc.moveDown();
+
+        // TABLE HEADER
+        doc.fontSize(11).text(
+            "Reg No        Name                Course          Backlogs     Signature"
+        );
+        doc.moveDown(0.5);
+
+        doc.moveTo(30, doc.y).lineTo(570, doc.y).stroke();
+
+        // TABLE ROWS
+        students.forEach((s, i) => {
+            doc.moveDown(0.5);
+
+            doc.text(
+                `${s.reg_no.padEnd(12)} ${s.name.substring(0,15).padEnd(18)} ${s.course.substring(0,10).padEnd(15)} ${String(s.backlogs).padEnd(10)} __________`
+            );
+        });
+
+        doc.end();
+
+    } catch (err) {
+        console.error("PDF Error:", err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 
 // Start server
 app.listen(3000, () => console.log("Hostel Management Server running on port 3000"));

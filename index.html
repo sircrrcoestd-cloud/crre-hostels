@@ -75,37 +75,56 @@ button:hover {
 document.getElementById("loginForm").addEventListener("submit", async function(e) {
     e.preventDefault();
 
-    const user_id = this.user_id.value;
-    const password = this.password.value;
+    const user_id = this.user_id.value.trim();
+    const password = this.password.value.trim();
 
-    const res = await fetch("/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id, password })
-    });
+    const errorBox = document.getElementById("errorMsg");
+    errorBox.innerText = "";
 
-    const data = await res.json();
+    try {
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id, password })
+        });
 
-    if (!data.success) {
-        document.getElementById("errorMsg").innerText = data.message;
-        return;
-    }
+        const data = await res.json();
 
-    // ✅ STORE USER ID & ROLE IN LOCAL STORAGE
-    localStorage.setItem("user_id", data.user_id);
-    localStorage.setItem("role", data.role);
+        // ❌ Invalid login
+        if (!data.success) {
+            errorBox.innerText = data.message || "Login failed";
+            return;
+        }
 
-    // Redirect based on role
-    if (data.role === "student") {
-        window.location.href = "student_dashboard.html";
-    } else if (data.role === "warden") {
-        window.location.href = "warden_dashboard.html";
-    } else if (data.role === "admin") {
-        window.location.href = "admin_dashboard.html";
+        // ✅ CLEAR OLD DATA
+        localStorage.clear();
+
+        // ✅ STORE USER INFO
+        localStorage.setItem("user_id", data.user_id);
+        localStorage.setItem("role", data.role);
+
+        console.log("Logged in:", data.user_id, data.role);
+
+        // ✅ REDIRECT BASED ON ROLE
+        if (data.role === "student") {
+            window.location.href = "student_dashboard.html";
+        } 
+        else if (data.role === "warden") {
+            window.location.href = "warden_dashboard.html";
+        } 
+        else if (data.role === "admin") {
+            window.location.href = "admin_dashboard.html";
+        } 
+        else {
+            errorBox.innerText = "Unknown role";
+        }
+
+    } catch (err) {
+        console.error("Login error:", err);
+        errorBox.innerText = "Server error. Please try again.";
     }
 });
 </script>
-
 
 </body>
 </html>
