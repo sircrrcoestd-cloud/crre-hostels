@@ -24,7 +24,7 @@ body {
 /* Grid Layout */
 .grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     padding: 20px;
 }
@@ -183,16 +183,7 @@ function renderStudents(data) {
 
 // ✅ FILTER
 function applyFilter() {
-    const year = document.getElementById("yearFilter").value;
-
-    if (year === "ALL") {
-        renderStudents(allStudents);
-        return;
-    }
-
-    const filtered = allStudents.filter(s => s.year.includes(year));
-    renderStudents(filtered);
-    loadStudents(); //
+    loadStudents(); // only backend filtering
 }
 
 // ✅ MODAL DETAILS (ALL DATA)
@@ -297,6 +288,8 @@ function downloadPDF() {
         link.click();
     });
 }
+
+
 async function loadBranches() {
     const userId = localStorage.getItem("user_id");
 
@@ -308,6 +301,9 @@ async function loadBranches() {
 
     const select = document.getElementById("branchFilter");
 
+    // ✅ CLEAR OLD OPTIONS
+    select.innerHTML = `<option value="ALL">All Branches</option>`;
+
     data.forEach(b => {
         const option = document.createElement("option");
         option.value = b.course;
@@ -315,6 +311,7 @@ async function loadBranches() {
         select.appendChild(option);
     });
 }
+
 </script>
 
 </body>
