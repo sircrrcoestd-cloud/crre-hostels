@@ -13,22 +13,29 @@ body {
 }
 
 .container {
-    max-width: 900px;
+    max-width: 1000px;
     margin: auto;
 }
 
-.card {
+.year-card {
     background: #1e293b;
     padding: 20px;
-    margin: 15px 0;
+    margin-bottom: 20px;
     border-radius: 12px;
+}
+
+.fee-card {
+    background: #334155;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 button {
-    padding: 10px 15px;
+    padding: 8px 14px;
     border: none;
     background: #22c55e;
     color: white;
@@ -38,6 +45,15 @@ button {
 
 button:disabled {
     background: gray;
+    cursor: not-allowed;
+}
+
+.paid {
+    color: #22c55e;
+}
+
+.pending {
+    color: #facc15;
 }
 </style>
 </head>
@@ -50,12 +66,10 @@ button:disabled {
 </div>
 
 <script>
-// ✅ Base URL (auto switch local / production)
 const BASE_URL = window.location.hostname === "localhost"
   ? "http://localhost:3000"
   : "https://crrehostel.onrender.com";
 
-// ✅ Get logged-in user
 const user_id = localStorage.getItem("user_id");
 
 if (!user_id) {
@@ -63,29 +77,12 @@ if (!user_id) {
     window.location.href = "index.html";
 }
 
-// ✅ Store student info
-let reg_no = "";
-let unique_id = "";
-
 // ==============================
-// LOAD FEES
+// LOAD FEES (YEAR-WISE)
 // ==============================
 async function loadFees() {
     try {
-        // 🔹 Step 1: Get student info (reg_no + unique_id)
-        const infoRes = await fetch(`${BASE_URL}/api/getStudentInfo/${user_id}`);
-        const info = await infoRes.json();
-
-        if (!info.reg_no) {
-            alert("Student data not found");
-            return;
-        }
-
-        reg_no = info.reg_no;
-        unique_id = info.unique_id;
-
-        // 🔹 Step 2: Get fee details
-        const res = await fetch(`${BASE_URL}/api/getFees?reg_no=${reg_no}`);
+        const res = await fetch(`${BASE_URL}/api/getFees/${user_id}`);
         const data = await res.json();
 
         const container = document.getElementById("fees");
@@ -96,21 +93,43 @@ async function loadFees() {
             return;
         }
 
-        data.forEach(fee => {
-            const div = document.createElement("div");
-            div.className = "card";
+        data.forEach(yearData => {
 
-            div.innerHTML = `
-                <div>
-                    <h3>${fee.type}</h3>
-                    <p>Amount: ₹${fee.amount}</p>
-                </div>
-                <button onclick="pay('${fee.type}', ${fee.amount})" ${fee.amount <= 0 ? "disabled" : ""}>
-                    Pay
-                </button>
+            const yearDiv = document.createElement("div");
+            yearDiv.className = "year-card";
+
+            yearDiv.innerHTML = `
+                <h3>Year ${yearData.year} (${yearData.academic_year || ""})</h3>
             `;
 
-            container.appendChild(div);
+            yearData.fees.forEach(fee => {
+
+                const isPaid = fee.pending <= 0;
+
+                const feeDiv = document.createElement("div");
+                feeDiv.className = "fee-card";
+
+                feeDiv.innerHTML = `
+                    <div>
+                        <h4>${fee.type}</h4>
+                        <p>Total: ₹${fee.total}</p>
+                        <p class="${isPaid ? 'paid' : 'pending'}">
+                            Paid: ₹${fee.paid} | Pending: ₹${fee.pending}
+                        </p>
+                    </div>
+
+                    <button 
+                        onclick="pay('${fee.type}', ${fee.pending})"
+                        ${isPaid ? "disabled" : ""}
+                    >
+                        ${isPaid ? "Paid" : "Pay"}
+                    </button>
+                `;
+
+                yearDiv.appendChild(feeDiv);
+            });
+
+            container.appendChild(yearDiv);
         });
 
     } catch (err) {
@@ -123,6 +142,7 @@ async function loadFees() {
 // PAYMENT FUNCTION
 // ==============================
 function pay(type, amount) {
+
     if (!amount || amount <= 0) {
         alert("Nothing to pay");
         return;
@@ -131,11 +151,12 @@ function pay(type, amount) {
     // 🔹 UPI link
     const upi = `upi://pay?pa=hostel@upi&pn=CRRHostel&am=${amount}&cu=INR`;
 
-    // 🔹 Open UPI (mobile only works properly)
+    // 🔹 Open payment
     window.location.href = upi;
 
-    // 🔹 After payment → ask txn ID
+    // 🔹 Ask txn ID after payment
     setTimeout(() => {
+
         const txn = prompt("Enter Transaction ID");
 
         if (!txn) {
@@ -143,13 +164,11 @@ function pay(type, amount) {
             return;
         }
 
-        // 🔹 Send to backend
         fetch(`${BASE_URL}/api/addTransaction`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
-                reg_no,
-                unique_id,
+                user_id,
                 fee_type: type,
                 amount,
                 transaction_id: txn
@@ -157,17 +176,18 @@ function pay(type, amount) {
         })
         .then(res => res.json())
         .then(data => {
+
             if (data.error) {
                 alert(data.error);
                 return;
             }
 
-            alert("Transaction submitted successfully!");
+            alert("Transaction submitted (Waiting for verification)");
             loadFees();
         })
         .catch(err => {
-            console.error("Transaction error:", err);
-            alert("Failed to submit transaction");
+            console.error(err);
+            alert("Transaction failed");
         });
 
     }, 3000);

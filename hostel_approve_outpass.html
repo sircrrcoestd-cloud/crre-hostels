@@ -2,272 +2,774 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Warden Outpass Panel</title>
+<title>Hostel Outpass Approval | Warden Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="crrengglogo.png" type="image/png" />
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.min.css"
+/>
 
 <style>
-/* ================= Global ================= */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+:root {
+  --primary-color: #0b2e59;
+  --secondary-color: #2c6e91;
+  --accent-color: #f7a048;
+  --background-dark: #f0f2f5;
+  --background-light: #ffffff;
+  --text-dark: #111827;
+  --text-light: #f4f4f4;
+  --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  --border-radius-lg: 16px;
+  --border-radius-md: 10px;
+  --success-color: #22c55e;
+  --danger-color: #ef4444;
+}
+
+/* Reset / Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #eef2f7;
+  background-color: var(--background-dark);
 }
 
-/* ================= Top bar ================= */
-.topbar {
-    background: #0b1c3c;
-    color: white;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-}
-.menu-btn {
-    font-size: 22px;
-    cursor: pointer;
-    margin-right: 15px;
+body.no-scroll {
+  overflow: hidden;
 }
 
-/* ================= Sidebar ================= */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Layout */
+.container-root {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
 .sidebar {
-    position: fixed;
-    top: 0;
-    left: -220px;
-    width: 220px;
-    height: 100%;
-    background: #0b1c3c;
-    color: white;
-    padding-top: 60px;
-    transition: 0.3s;
-    z-index: 1000;
-}
-.sidebar a {
-    display: block;
-    padding: 15px;
-    color: white;
-    text-decoration: none;
-    font-size: 16px;
-}
-.sidebar a:hover {
-    background: #1a3a60;
+  width: 280px;
+  background-color: var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  padding: 30px 20px;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
+  overflow-y: auto;
 }
 
-/* ================= Content ================= */
-.content {
-    padding: 30px;
+.photo-container {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 20px;
 }
 
-/* ================= Table UI ================= */
-.container {
-    width: 95%;
-    margin: auto;
-    background: #fff;
-    padding: 20px;
-    border-radius: 10px;
+.home-icon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: var(--background-light);
+  color: var(--primary-color);
+  border-radius: 50%;
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, background-color 0.3s ease;
 }
 
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
+.home-icon:hover {
+  transform: scale(1.1);
+  background-color: var(--accent-color);
+  color: var(--text-light);
+}
+
+.sidebar-photo {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  border: 4px solid var(--accent-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar h2 {
+  margin: 40px 20px 10px 20px;
+  color: var(--text-light);
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.sidebar h3 {
+  margin: 0 20px 20px 20px;
+  color: #cfe4ff;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.menu {
+  list-style: none;
+  padding: 0;
+  flex-grow: 1;
+}
+
+.menu li {
+  list-style: none;
+  margin-bottom: 12px;
+}
+
+.menu li a {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 1rem;
+  color: var(--text-light);
+  padding: 15px 20px;
+  border-radius: var(--border-radius-md);
+  transition: all 0.3s ease;
+}
+
+.menu li a:hover,
+.menu li.active a {
+  background-color: rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  transform: translateX(5px);
+  box-shadow: var(--card-shadow);
+}
+
+.menu li a i {
+  font-size: 1.2rem;
+  width: 25px;
+  text-align: center;
+  color: var(--text-light);
+  transition: color 0.3s ease;
+}
+
+.logout {
+  background-color: var(--accent-color);
+  color: var(--text-light);
+  border: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  width: 70%;
+  margin: 20px auto 10px;
+  transition: background 0.3s ease, transform 0.2s ease;
+  display: block;
+  text-align: center;
+}
+
+.logout:hover {
+  background-color: #d3853b;
+  transform: scale(1.05);
+}
+
+/* Main Section */
+.main-section {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--background-dark);
+  padding: 40px 30px;
+  margin-left: 280px;
+  transition: margin-left 0.3s ease-in-out;
+  min-height: 100vh;
+}
+
+/* Card */
+.details-card {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+  width: 100%;
+  max-width: 1150px;
+  padding: 24px 24px 20px;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.details-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+}
+
+.details-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.details-header {
+  margin-bottom: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.details-header-text h1 {
+  font-size:1.4rem;
+  color:var(--primary-color);
+  margin-bottom:2px;
+}
+
+.details-header-text p {
+  font-size:0.9rem;
+  color:#4b5563;
+}
+
+/* Table */
+.table-wrapper {
+  margin-top: 10px;
+  border-radius: 12px;
+  border:1px solid #e5e7eb;
+  overflow:hidden;
+}
+
+.table-scroll {
+  max-height: 440px;
+  overflow:auto;
 }
 
 table {
-    width: 100%;
-    border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
+  font-size:0.9rem;
 }
 
 th, td {
-    padding: 12px;
-    border-bottom: 1px solid #ddd;
-    text-align: center;
+  padding: 10px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+  vertical-align: middle;
 }
 
 th {
-    background: #007bff;
-    color: white;
+  background: linear-gradient(135deg,#0b1c3c,#1f2937);
+  color: white;
+  position:sticky;
+  top:0;
+  z-index:1;
 }
 
-/* ================= Buttons ================= */
-.approve {
-    background: green;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    cursor: pointer;
-    border-radius: 5px;
+tbody tr:nth-child(even) {
+  background:#f9fafb;
 }
-.reject {
-    background: red;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    cursor: pointer;
-    border-radius: 5px;
-}
-.qr-btn {
-    background: #333;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 5px;
-    cursor: pointer;
+tbody tr:hover {
+  background:#e5f2ff;
 }
 
-.status-Pending { color: orange; font-weight: bold; }
-.status-Approved { color: green; font-weight: bold; }
-.status-Rejected { color: red; font-weight: bold; }
-
-/* ================= QR Modal ================= */
-.qr-modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6);
+/* Buttons */
+.btn-sm {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border:none;
+  font-size:0.8rem;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
 }
 
-.qr-content {
-    background: white;
+.btn-approve {
+  background: linear-gradient(135deg,var(--success-color),#16a34a);
+  color:#fff;
+}
+
+.btn-reject {
+  background: linear-gradient(135deg,var(--danger-color),#b91c1c);
+  color:#fff;
+}
+
+.btn-qr {
+  background:#111827;
+  color:#f9fafb;
+}
+
+/* Status badges */
+.status-badge {
+  display:inline-block;
+  padding:3px 9px;
+  border-radius:999px;
+  font-size:0.8rem;
+  font-weight:600;
+}
+
+.status-Pending {
+  color:#92400e;
+  background:#fef3c7;
+}
+.status-Approved {
+  color:#166534;
+  background:#dcfce7;
+}
+.status-Rejected {
+  color:#b91c1c;
+  background:#fee2e2;
+}
+
+/* No data message */
+.empty-state {
+  text-align:center;
+  padding:20px;
+  font-size:0.9rem;
+  color:#6b7280;
+}
+
+/* Mobile Toggle & Overlay */
+.mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: var(--secondary-color);
+  color: var(--text-light);
+  font-size: 24px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 999;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .main-section {
+    padding: 30px 20px;
+  }
+  .details-card {
     padding: 20px;
-    margin: 10% auto;
-    width: 300px;
-    text-align: center;
-    border-radius: 10px;
+  }
+}
+
+@media (max-width: 992px) {
+  .mobile-toggle {
+    display: flex;
+  }
+  .sidebar {
+    transform: translateX(-100%);
+    width: 250px;
+    max-width: 85vw;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-section {
+    margin-left: 0;
+    padding: 20px;
+  }
+  .details-card {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 576px) {
+  .sidebar {
+    width: 220px;
+    max-width: 75vw;
+    padding: 20px 15px;
+  }
+  .sidebar h2 {
+    font-size: 1rem;
+  }
+  .menu li a {
+    font-size: 0.9rem;
+    padding: 12px 15px;
+  }
+  .details-card {
+    padding: 14px;
+  }
+  table {
+    font-size:0.82rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .mobile-toggle {
+    width: 40px;
+    height: 40px;
+  }
+  .sidebar {
+    width: 200px;
+  }
+  .details-card {
+    padding: 12px;
+  }
 }
 </style>
 </head>
-
 <body>
 
-<!-- ================= TOP BAR ================= -->
-<div class="topbar">
-    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
-    <h2 style="margin:0;">Warden Dashboard</h2>
-</div>
+<!-- Mobile overlay -->
+<div class="overlay" onclick="toggleMobileMenu()"></div>
 
-<!-- ================= SIDEBAR ================= -->
-<div class="sidebar" id="sidebar">
-    <a href="hostel_attendence.html">Attendance</a>
-    <a href="approve_outpass.html">Outpass</a>
-    <a href="hostel-admissions.html">Admission</a>
-</div>
-
-<!-- ================= CONTENT ================= -->
-<div class="content">
-
-<div class="container">
-<h2>Warden Outpass Approval Panel</h2>
-
-<table>
-<thead>
-<tr>
-    <th>Student</th>
-    <th>Out Date</th>
-    <th>In Date</th>
-    <th>Reason</th>
-    <th>Status</th>
-    <th>Action</th>
-</tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
-</div>
-
-</div>
-
-<!-- ================= QR MODAL ================= -->
-<div id="qrModal" class="qr-modal">
-    <div class="qr-content">
-        <h3>Outpass QR</h3>
-        <div id="qrImage"></div>
-        <br>
-        <button onclick="closeQR()">Close</button>
+<div class="container-root">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="photo-container">
+      <a href="index.html" class="home-icon" title="Hostel Home">
+        <i class="fas fa-home"></i>
+      </a>
+      <img id="sidebarPhoto" class="sidebar-photo" style="display: none;" />
     </div>
+
+    <h2>Warden ID: <span id="wardenId">Loading...</span></h2>
+    <h3 id="hostelTypeLabel">Hostel Outpass Panel</h3>
+
+    <ul class="menu">
+      <li>
+        <a href="hostel_warden_dashboard.html">
+          <i class="fas fa-chart-line"></i> Backlog Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="Hostel_attendance.html">
+          <i class="fas fa-user-check"></i> Hostel Attendance
+        </a>
+      </li>
+      <li>
+        <a href="hostel_admissions.html">
+          <i class="fas fa-id-card-alt"></i> Hostel Admissions
+        </a>
+      </li>
+      <li class="active">
+        <a href="hostel_approve_outpass.html">
+          <i class="fas fa-door-open"></i> Approve Outpass
+        </a>
+      </li>
+      <li>
+        <button class="logout" onclick="confirmLogout()">Logout</button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-section">
+    <div class="details-card">
+      <div class="details-header">
+        <div class="details-header-text">
+          <h1>Warden Outpass Approval Panel</h1>
+          <p>Review, approve or reject hostel outpass requests and view QR passes.</p>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Out Date &amp; Time</th>
+                <th>In Date &amp; Time</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="6" class="empty-state">
+                  Loading requests...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
-<script>
-/* ================= Sidebar ================= */
-const sidebar = document.getElementById("sidebar");
+<!-- Mobile FAB Toggle -->
+<div class="mobile-toggle" onclick="toggleMobileMenu()">
+  <i class="fas fa-bars"></i>
+</div>
 
-function toggleSidebar() {
-    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.all.min.js"></script>
+<script>
+let role = ""; // dynamic from user_id
+
+/* ===== MOBILE SIDEBAR ===== */
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.overlay');
+  const body = document.body;
+
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('active');
+  body.classList.toggle('no-scroll');
 }
 
-/* ================= Outpass Logic (UNCHANGED) ================= */
-document.addEventListener("DOMContentLoaded", loadRequests);
+/* ===== LOGOUT WITH SWEETALERT ===== */
+function confirmLogout() {
+  Swal.fire({
+    title: 'Logout?',
+    text: 'You will be logged out of this warden session.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#0b2e59',
+    cancelButtonColor: '#f7a048',
+    confirmButtonText: 'Yes, logout'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      logout();
+    }
+  });
+}
 
+function logout() {
+  fetch("/logout", { method: "GET", credentials: "include" })
+    .then(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      if ("caches" in window) {
+        caches.keys().then(names => names.forEach(name => caches.delete(name)));
+      }
+      window.location.replace("login.html");
+    })
+    .catch(() => {
+      window.location.replace("login.html");
+    });
+}
+
+/* ===== INITIALIZE ===== */
+document.addEventListener("DOMContentLoaded", () => {
+  const wardenId = localStorage.getItem("user_id") || "";
+  const wardenLabel = document.getElementById("wardenId");
+  const hostelTypeLabel = document.getElementById("hostelTypeLabel");
+  const sidebarPhoto = document.getElementById("sidebarPhoto");
+
+  if (!wardenId) {
+    Swal.fire({
+      title: 'Access Denied',
+      text: 'Please login as Hostel Warden to access outpass approvals.',
+      icon: 'error',
+      confirmButtonText: 'Go to Login',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      confirmButtonColor: '#0b2e59'
+    }).then(() => {
+      window.location.href = "login.html";
+    });
+    return;
+  }
+
+  role = wardenId;
+
+  wardenLabel.textContent = wardenId;
+  if (wardenId.startsWith("BH")) {
+    hostelTypeLabel.textContent = "Boys Hostel Outpass Panel";
+  } else if (wardenId.startsWith("GH")) {
+    hostelTypeLabel.textContent = "Girls Hostel Outpass Panel";
+  } else {
+    hostelTypeLabel.textContent = "Hostel Outpass Panel";
+  }
+
+  // avatar
+  sidebarPhoto.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(wardenId)}&background=0b2e59&color=fff&rounded=true&bold=true&size=128`;
+  sidebarPhoto.style.display = "block";
+
+  // load initial data
+  loadRequests();
+});
+
+/* ===== AUTO-CLOSE SIDEBAR LINKS (MOBILE) ===== */
+document.querySelectorAll(".menu li a").forEach(link => {
+  link.addEventListener("click", () => {
+    if (window.innerWidth <= 992) {
+      toggleMobileMenu();
+    }
+  });
+});
+
+/* ===== OUTPASS LOGIC (same endpoints, themed UI) ===== */
 function loadRequests() {
-    fetch("/warden/outpass-requests")
-        .then(res => res.json())
-        .then(data => {
-            const tbody = document.getElementById("tableBody");
-            tbody.innerHTML = "";
+  fetch("/warden/outpass-requests")
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
 
-            data.forEach(r => {
-                const tr = document.createElement("tr");
+      if (!Array.isArray(data) || data.length === 0) {
+        tbody.innerHTML = `
+          <tr><td colspan="6" class="empty-state">No outpass requests found.</td></tr>
+        `;
+        return;
+      }
 
-                let actionHTML = "-";
+      data.forEach(r => {
+        const tr = document.createElement("tr");
 
-                if (r.status === "Pending") {
-                    actionHTML = `
-                        <button class="approve" onclick="approve(${r.id})">Accept</button>
-                        <button class="reject" onclick="rejectReq(${r.id})">Reject</button>
-                    `;
-                } else if (r.status === "Approved") {
-                    actionHTML = `
-                        <button class="qr-btn" onclick="showQR('${r.qr_token}')">
-                            View QR
-                        </button>
-                    `;
-                }
+        let actionHTML = "-";
 
-                tr.innerHTML = `
-                    <td>${r.student_name}</td>
-                    <td>${new Date(r.out_datetime).toLocaleString()}</td>
-                    <td>${new Date(r.in_datetime).toLocaleString()}</td>
-                    <td>${r.reason}</td>
-                    <td class="status-${r.status}">${r.status}</td>
-                    <td>${actionHTML}</td>
-                `;
+        if (r.status === "Pending") {
+          actionHTML = `
+            <button class="btn-sm btn-approve" onclick="approve(${r.id})">
+              <i class="fas fa-check"></i> Accept
+            </button>
+            <button class="btn-sm btn-reject" onclick="rejectReq(${r.id})" style="margin-left:4px;">
+              <i class="fas fa-times"></i> Reject
+            </button>
+          `;
+        } else if (r.status === "Approved") {
+          actionHTML = `
+            <button class="btn-sm btn-qr" onclick="showQR('${r.qr_token}')">
+              <i class="fas fa-qrcode"></i> View QR
+            </button>
+          `;
+        }
 
-                tbody.appendChild(tr);
-            });
-        });
+        const outStr = r.out_datetime ? new Date(r.out_datetime).toLocaleString() : "-";
+        const inStr  = r.in_datetime ? new Date(r.in_datetime).toLocaleString() : "-";
+
+        tr.innerHTML = `
+          <td>${r.student_name}</td>
+          <td>${outStr}</td>
+          <td>${inStr}</td>
+          <td>${r.reason}</td>
+          <td><span class="status-badge status-${r.status}">${r.status}</span></td>
+          <td>${actionHTML}</td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      console.error("loadRequests error:", err);
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = `
+        <tr><td colspan="6" class="empty-state">Error loading requests. Please try again.</td></tr>
+      `;
+      Swal.fire('Error', 'Unable to load outpass requests.', 'error');
+    });
 }
 
 function approve(id) {
-    if (!confirm("Approve this outpass?")) return;
+  Swal.fire({
+    title: 'Approve Outpass?',
+    text: 'Do you want to approve this outpass request?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#22c55e',
+    cancelButtonColor: '#9ca3af',
+    confirmButtonText: 'Approve'
+  }).then((result) => {
+    if (!result.isConfirmed) return;
 
     fetch(`/warden/approve-outpass/${id}`, {
-        method: "POST"
+      method: "POST"
     })
+    .then(res => res.json().catch(() => ({})))
     .then(() => {
-        alert("Outpass Approved");
-        loadRequests();
+      Swal.fire('Approved', 'Outpass has been approved.', 'success');
+      loadRequests();
+    })
+    .catch(err => {
+      console.error("approve error:", err);
+      Swal.fire('Error', 'Failed to approve outpass.', 'error');
     });
+  });
 }
 
 function rejectReq(id) {
-    if (!confirm("Reject this outpass?")) return;
+  Swal.fire({
+    title: 'Reject Outpass?',
+    text: 'Do you want to reject this outpass request?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#9ca3af',
+    confirmButtonText: 'Reject'
+  }).then((result) => {
+    if (!result.isConfirmed) return;
 
     fetch(`/warden/reject-outpass/${id}`, {
-        method: "POST"
+      method: "POST"
     })
+    .then(res => res.json().catch(() => ({})))
     .then(() => {
-        alert("Outpass Rejected");
-        loadRequests();
+      Swal.fire('Rejected', 'Outpass has been rejected.', 'success');
+      loadRequests();
+    })
+    .catch(err => {
+      console.error("reject error:", err);
+      Swal.fire('Error', 'Failed to reject outpass.', 'error');
     });
+  });
 }
 
 function showQR(token) {
-    document.getElementById("qrImage").innerHTML =
-        `<img src="/outpass-qr/${token}" width="200">`;
-    document.getElementById("qrModal").style.display = "block";
-}
+  if (!token) {
+    Swal.fire('No QR', 'QR token not available for this outpass.', 'info');
+    return;
+  }
 
-function closeQR() {
-    document.getElementById("qrModal").style.display = "none";
+  Swal.fire({
+    title: 'Outpass QR',
+    html: `<img src="/outpass-qr/${token}" alt="Outpass QR" style="width:220px;height:220px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;" />`,
+    showConfirmButton: true,
+    confirmButtonText: 'Close',
+    confirmButtonColor: '#0b2e59',
+    width: 340
+  });
 }
 </script>
-
 </body>
 </html>

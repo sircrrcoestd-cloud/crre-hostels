@@ -1,17 +1,28 @@
 const express = require("express");
-
+const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
+const { exec } = require("child_process");
 const path = require("path");
 const app = express();
 const crypto = require("crypto");
 const QRCode = require("qrcode");
 const bcrypt = require("bcrypt");
+const multer = require("multer");
 const PDFDocument = require("pdfkit");const cors = require("cors");
 app.use(cors());
+const upload = multer({ dest: "uploads/" });
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
+const session = require("express-session");
+
+app.use(session({
+    secret: "hostel_secret_key",
+    resave: false,
+    saveUninitialized: true
+}));
 
 // Serve frontend HTML
 app.use(express.static(__dirname));
@@ -33,36 +44,105 @@ const db = mysql.createPool({
 
 module.exports = db;
 
+// Configure the email transporter
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // use SSL
+  auth: {
+    user: "sircrrcoestd@sircrrengg.ac.in",
+    pass: "eczr eaoo ruqa pwba",
+  },
+});
+
+// ==========================
+// HELPER FUNCTION (ADD HERE)
+// ==========================
+async function generateUserId(data, loggedUser) {
+    let prefix = "ST";
+
+    if (loggedUser.user_id.startsWith("BH")) prefix = "BH";
+    else if (loggedUser.user_id.startsWith("GH")) prefix = "GH";
+
+    let blockShort = data.block_name
+        .split(" ")
+        .map(w => w[0])
+        .join("")
+        .toUpperCase();
+
+    let room = data.room_number;
+
+    const [rows] = await db.execute(
+        `SELECT COUNT(*) as count FROM users WHERE user_id LIKE ?`,
+        [`${prefix}-%`]
+    );
+
+    let number = (rows[0].count + 1).toString().padStart(4, "0");
+
+    return `${prefix}-${blockShort}-${room}-${number}`;
+}
+
+
 // ================================
 //      POST - HOSTEL FORM SUBMIT
 // ================================
 app.post("/submit-hostel-form", async (req, res) => {
     try {
         const data = req.body;
+        const loggedUser = req.session.user;
+
+        let finalUserId = data.user_id;
 
         // =========================
-        // 1️⃣ Hash the password
+        // GENERATE USER ID IF EMPTY
         // =========================
-        const hashedPassword = await bcrypt.hash(data.password, 10);
+        if (!finalUserId || finalUserId.trim() === "") {
+            finalUserId = await generateUserId(data, loggedUser);
+        }
 
         // =========================
-        // 2️⃣ Insert into USERS table
+        // PASSWORD = USER ID
+        // =========================
+        const plainPassword = finalUserId;
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
+        const rollNumber = data.roll_number?.trim() || null;
+
+        // =========================
+        // 🔥 DETERMINE RESIDENCE TYPE
+        // =========================
+        let residence_type = null;
+
+        if (loggedUser?.user_id?.startsWith("BH")) {
+            residence_type = "BOYS_HOSTEL";
+        } else if (loggedUser?.user_id?.startsWith("GH")) {
+            residence_type = "GIRLS_HOSTEL";
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid warden type"
+            });
+        }
+
+        // =========================
+        // INSERT INTO USERS
         // =========================
         await db.execute(
             `INSERT INTO users (user_id, password, role)
              VALUES (?, ?, 'student')`,
-            [data.user_id, hashedPassword]
+            [finalUserId, hashedPassword]
         );
 
         // =========================
-        // 3️⃣ Insert into HOSTEL_ADMISSIONS table
+        // INSERT INTO ADMISSIONS
         // =========================
-        const sql = `
-            INSERT INTO hostel_admissions (
+        await db.execute(
+            `INSERT INTO hostel_admissions (
                 academic_year,
                 application_number,
                 user_id,
+                residence_type,   -- ✅ added
                 name,
+                email,
                 father_name,
                 father_occupation,
                 mother_name,
@@ -86,77 +166,121 @@ app.post("/submit-hostel-form", async (req, res) => {
                 drug_allergy,
                 student_declaration,
                 parent_declaration
-            ) 
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        `;
-
-        await db.execute(sql, [
-            data.academic_year,
-            data.application_number,
-            data.user_id,
-            data.name,
-            data.father_name,
-            data.father_occupation,
-            data.mother_name,
-            data.mother_occupation,
-            data.date_of_birth,
-            data.blood_group,
-            data.permanent_address,
-            data.present_address,
-            data.course_year,
-            data.branch,
-            data.roll_number,
-            data.emergency_contact_father,
-            data.emergency_contact_mother,
-            data.emergency_contact_guardian,
-            data.inmate_contact,
-            data.local_guardian_contact,
-            data.block_name,
-            data.room_number,
-            data.has_medical_issue,
-            data.medical_drug_used || "",
-            data.drug_allergy || "",
-            data.student_declaration ? 1 : 0,
-            data.parent_declaration ? 1 : 0
-        ]);
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+                data.academic_year,
+                data.application_number,
+                finalUserId,
+                residence_type,   // ✅ inserted here
+                data.name,
+                data.email,
+                data.father_name,
+                data.father_occupation,
+                data.mother_name,
+                data.mother_occupation,
+                data.date_of_birth,
+                data.blood_group,
+                data.permanent_address,
+                data.present_address,
+                data.course_year,
+                data.branch,
+                rollNumber,
+                data.emergency_contact_father,
+                data.emergency_contact_mother,
+                data.emergency_contact_guardian,
+                data.inmate_contact,
+                data.local_guardian_contact,
+                data.block_name,
+                data.room_number,
+                data.has_medical_issue,
+                data.medical_drug_used || "",
+                data.drug_allergy || "",
+                data.student_declaration ? 1 : 0,
+                data.parent_declaration ? 1 : 0
+            ]
+        );
 
         // =========================
-        // 4️⃣ Success Response
+        // SEND EMAIL
         // =========================
+        await transporter.sendMail({
+            from: "yourmail@gmail.com",
+            to: data.email,
+            subject: "Hostel Admission Successful",
+            html: `
+                <h3>Welcome to Hostel</h3>
+                <p>Your account has been created.</p>
+                <p><b>User ID:</b> ${finalUserId}</p>
+                <p><b>Password:</b> ${plainPassword}</p>
+                <p><b>Hostel Type:</b> ${residence_type}</p>
+            `
+        });
+
         res.json({
             success: true,
-            message: "Hostel Admission Submitted & Student Account Created Successfully!"
+            message: "Admission Successful & Credentials sent to email!"
         });
 
     } catch (error) {
-        console.error("Hostel form error:", error);
+        console.error(error);
 
-        // Duplicate user_id handling
         if (error.code === "ER_DUP_ENTRY") {
             return res.status(400).json({
                 success: false,
-                message: "User ID already exists. Please choose a different User ID."
+                message: "User ID already exists"
             });
         }
 
-        res.status(500).json({
-            success: false,
-            message: "Server Error"
-        });
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 });
+app.get("/get-blocks", async (req, res) => {
+    try {
+        const role = req.query.role || "BHWARDEN";
 
+        const hostelType =
+            role === "BHWARDEN" ? "BOYS_HOSTEL" : "GIRLS_HOSTEL";
 
+        const [rows] = await db.query(`
+            SELECT DISTINCT h.block_name
+            FROM hostel_management_system.hostel_admissions h
+            JOIN railway.students s
+                ON h.user_id = s.userId
+            WHERE s.residence_type = ?
+            ORDER BY h.block_name ASC
+        `, [hostelType]);
+
+        res.json(rows || []);
+
+    } catch (err) {
+        console.error("GET BLOCKS ERROR:", err);
+        res.json([]);
+    }
+});
 app.get("/get-rooms/:block", async (req, res) => {
     const block = req.params.block;
+
     try {
-        const [rows] = await db.query(
-            "SELECT DISTINCT room_number FROM hostel_admissions WHERE block_name = ? ORDER BY room_number ASC",
-            [block]
-        );
-        res.json(rows);
+        const role = req.query.role || "BHWARDEN";
+
+        const hostelType =
+            role === "BHWARDEN" ? "BOYS_HOSTEL" : "GIRLS_HOSTEL";
+
+        const [rows] = await db.query(`
+            SELECT DISTINCT h.room_number
+            FROM hostel_management_system.hostel_admissions h
+            JOIN railway.students s
+                ON h.user_id = s.userId
+            WHERE h.block_name = ?
+            AND s.residence_type = ?
+            ORDER BY h.room_number ASC
+        `, [block, hostelType]);
+
+        res.json(rows || []);
+
     } catch (err) {
-        res.status(500).json({ error: "Database Error" });
+        console.error("GET ROOMS ERROR:", err);
+        res.json([]);
     }
 });
 
@@ -164,14 +288,26 @@ app.get("/get-students/:block/:room", async (req, res) => {
     const { block, room } = req.params;
 
     try {
-        const [rows] = await db.query(
-            "SELECT name FROM hostel_admissions WHERE block_name = ? AND room_number = ?",
-            [block, room]
-        );
+        const role = req.query.role || "BHWARDEN";
 
-        res.json(rows);
+        const hostelType =
+            role === "BHWARDEN" ? "BOYS_HOSTEL" : "GIRLS_HOSTEL";
+
+        const [rows] = await db.query(`
+            SELECT s.userId, s.name
+            FROM hostel_management_system.hostel_admissions h
+            JOIN railway.students s
+                ON h.user_id = s.userId
+            WHERE h.block_name = ?
+            AND h.room_number = ?
+            AND s.residence_type = ?
+        `, [block, room, hostelType]);
+
+        res.json(rows || []);
+
     } catch (err) {
-        res.status(500).json({ error: "Database Error" });
+        console.error("GET STUDENTS ERROR:", err);
+        res.json([]);
     }
 });
 
@@ -183,9 +319,13 @@ app.post("/submit-attendance", async (req, res) => {
             INSERT INTO hostel_attendance 
             (block_name, room_number, student_name, attendance, date)
             VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            attendance = VALUES(attendance)
         `;
 
         for (let s of students) {
+            if (!s.attendance) continue; // skip unmarked
+
             await db.execute(sql, [
                 block_name,
                 room_number,
@@ -198,69 +338,311 @@ app.post("/submit-attendance", async (req, res) => {
         res.json({ success: true, message: "Attendance Saved Successfully!" });
 
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: "Database Error" });
     }
 });
 
+app.get("/get-attendance/:block/:room/:date", async (req, res) => {
+    const { block, room, date } = req.params;
+
+    try {
+        const [rows] = await db.query(
+            `SELECT student_name, attendance 
+             FROM hostel_attendance
+             WHERE block_name = ? AND room_number = ? AND date = ?`,
+            [block, room, date]
+        );
+
+        res.json(rows);
+    } catch (err) {
+        res.json([]);
+    }
+});
+
+// ================================
+//      STUDENT REQUEST OUTPASS
+// ================================
 app.post("/request-outpass", async (req, res) => {
+  try {
     const { student_name, user_id, out_datetime, in_datetime, reason } = req.body;
 
+    // Get residence_type from admissions
+    const [student] = await db.execute(
+      `SELECT residence_type 
+       FROM hostel_admissions 
+       WHERE user_id = ?`,
+      [user_id]
+    );
+
+    if (!student || student.length === 0) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // ✅ FIXED HERE
+    const residence_type = student[0].residence_type;
+
+    if (!residence_type) {
+      return res.status(400).json({ error: "Residence type missing" });
+    }
+
+    // Insert request
     await db.execute(
-        `INSERT INTO hostel_outpass_requests
-        (student_name, user_id, out_datetime, in_datetime, reason)
-        VALUES (?, ?, ?, ?, ?)`,
-        [student_name, user_id, out_datetime, in_datetime, reason]
+      `INSERT INTO hostel_outpass_requests
+       (student_name, user_id, out_datetime, in_datetime, reason, residence_type, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'Pending')`,
+      [student_name, user_id, out_datetime, in_datetime, reason, residence_type]
     );
 
     res.json({ success: true });
+
+  } catch (err) {
+    console.error("Outpass request error:", err);
+    res.status(500).json({ error: "Failed to submit outpass" });
+  }
 });
 
+
+// =====================================
+//   GET OUTPASS REQUESTS (WARDEN FILTER)
+// =====================================
+app.get("/warden/outpass-requests", async (req, res) => {
+  try {
+    const loggedUser = req.session.user;
+
+    if (!loggedUser) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    let residence_type = null;
+
+    if (loggedUser.user_id.startsWith("BH")) {
+      residence_type = "BOYS_HOSTEL";
+    } else if (loggedUser.user_id.startsWith("GH")) {
+      residence_type = "GIRLS_HOSTEL";
+    } else {
+      return res.status(400).json({ error: "Invalid warden" });
+    }
+
+    const [rows] = await db.execute(
+      `SELECT 
+         id,
+         student_name,
+         user_id,
+         out_datetime,
+         in_datetime,
+         reason,
+         status,
+         qr_token
+       FROM hostel_outpass_requests
+       WHERE residence_type = ?
+       ORDER BY created_at DESC`,
+      [residence_type]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Fetch outpass requests error:", err);
+    res.status(500).json({ error: "Failed to fetch outpass requests" });
+  }
+});
+
+
+// ================================
+//      APPROVE OUTPASS + EMAIL
+// ================================
 app.post("/warden/approve-outpass/:id", async (req, res) => {
-    const id = req.params.id;
-    const qrToken = crypto.randomBytes(25).toString("hex");
+    try {
+        const id = req.params.id;
+        const loggedUser = req.session.user;
 
-    await db.execute(
-        `UPDATE hostel_outpass_requests
-         SET status = 'Approved',
-             qr_token = ?,
-             approved_at = NOW(),
-             expires_at = DATE_ADD(NOW(), INTERVAL 2 DAY)
-         WHERE id = ?`,
-        [qrToken, id]
-    );
+        // 🔐 AUTH CHECK
+        if (!loggedUser) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
 
-    res.json({ success: true });
+        let residence_type = null;
+
+        if (loggedUser.user_id.startsWith("BH")) {
+            residence_type = "BOYS_HOSTEL";
+        } else if (loggedUser.user_id.startsWith("GH")) {
+            residence_type = "GIRLS_HOSTEL";
+        } else {
+            return res.status(400).json({ error: "Invalid warden type" });
+        }
+
+        // 🔑 GENERATE QR TOKEN
+        const qrToken = crypto.randomBytes(25).toString("hex");
+
+        // ✅ UPDATE OUTPASS
+        const [result] = await db.execute(
+            `UPDATE hostel_outpass_requests
+             SET status = 'Approved',
+                 qr_token = ?,
+                 approved_at = NOW(),
+                 expires_at = DATE_ADD(NOW(), INTERVAL 2 DAY)
+             WHERE id = ? AND residence_type = ?`,
+            [qrToken, id, residence_type]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({
+                error: "Approval failed (wrong hostel or request not found)"
+            });
+        }
+
+        // ✅ GET STUDENT DETAILS
+        const [rows] = await db.execute(
+            `SELECT o.student_name, o.user_id, h.email
+             FROM hostel_outpass_requests o
+             JOIN hostel_admissions h ON o.user_id = h.user_id
+             WHERE o.id = ?`,
+            [id]
+        );
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: "Student data not found" });
+        }
+
+        const student = rows[0];
+
+        // ✅ GENERATE QR (BUFFER)
+        const qrData = `http://localhost:3000/verify-outpass/${qrToken}`;
+        const qrBuffer = await QRCode.toBuffer(qrData);
+
+        // ✅ SEND EMAIL WITH QR
+        await transporter.sendMail({
+            from: "yourmail@gmail.com",
+            to: student.email,
+            subject: "Outpass Approved ✅",
+
+            html: `
+                <h2>Outpass Approved</h2>
+                <p>Dear ${student.student_name},</p>
+
+                <p>Your outpass request has been <b>approved</b>.</p>
+
+                <p><b>User ID:</b> ${student.user_id}</p>
+
+                <p><b>Scan this QR at the hostel gate:</b></p>
+                <img src="cid:qrimage" width="200"/>
+
+                <p>This QR is valid for <b>one-time use only</b>.</p>
+
+                <p>
+                    Or click to verify:
+                    <a href="http://localhost:3000/verify-outpass/${qrToken}">
+                        Verify Outpass
+                    </a>
+                </p>
+            `,
+
+            attachments: [
+                {
+                    filename: "outpass-qr.png",
+                    content: qrBuffer,
+                    cid: "qrimage" // must match img src
+                }
+            ]
+        });
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Approve error:", err);
+        res.status(500).json({ error: "Approval failed" });
+    }
 });
 
-
+// ================================
+//      REJECT OUTPASS + EMAIL
+// ================================
 app.post("/warden/reject-outpass/:id", async (req, res) => {
-    await db.execute(
-        `UPDATE hostel_outpass_requests 
-         SET status='Rejected' 
-         WHERE id=?`,
-        [req.params.id]
-    );
+    try {
+        const id = req.params.id;
+        const loggedUser = req.session.user;
 
-    res.json({ success: true });
+        // 🔐 AUTH CHECK
+        if (!loggedUser) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        let residence_type = null;
+
+        if (loggedUser.user_id.startsWith("BH")) {
+            residence_type = "BOYS_HOSTEL";
+        } else if (loggedUser.user_id.startsWith("GH")) {
+            residence_type = "GIRLS_HOSTEL";
+        } else {
+            return res.status(400).json({ error: "Invalid warden type" });
+        }
+
+        // ✅ UPDATE STATUS
+        const [result] = await db.execute(
+            `UPDATE hostel_outpass_requests
+             SET status = 'Rejected'
+             WHERE id = ? AND residence_type = ?`,
+            [id, residence_type]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({
+                error: "Reject failed (wrong hostel or request not found)"
+            });
+        }
+
+        // ✅ GET STUDENT EMAIL
+        const [rows] = await db.execute(
+            `SELECT o.student_name, o.user_id, h.email
+             FROM hostel_outpass_requests o
+             JOIN hostel_admissions h ON o.user_id = h.user_id
+             WHERE o.id = ?`,
+            [id]
+        );
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: "Student data not found" });
+        }
+
+        const student = rows[0];
+
+        // ✅ SEND EMAIL
+        await transporter.sendMail({
+            from: "yourmail@gmail.com",
+            to: student.email,
+            subject: "Outpass Rejected ❌",
+
+            html: `
+                <h2>Outpass Rejected</h2>
+                <p>Dear ${student.student_name},</p>
+
+                <p>Your outpass request has been <b>rejected</b> by the warden.</p>
+
+                <p>If needed, please contact hostel office.</p>
+            `
+        });
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Reject error:", err);
+        res.status(500).json({ error: "Reject failed" });
+    }
 });
 
-
-
+// =====================================
+//   GENERATE QR IMAGE FOR OUTPASS
+// =====================================
 app.get("/outpass-qr/:token", async (req, res) => {
     try {
         const token = req.params.token;
 
         const qrData = `http://localhost:3000/verify-outpass/${token}`;
 
-        const qrImage = await QRCode.toDataURL(qrData);
+        const qrBuffer = await QRCode.toBuffer(qrData);
 
-        // Send image directly
-        const img = Buffer.from(qrImage.split(",")[1], "base64");
-        res.writeHead(200, {
-            "Content-Type": "image/png",
-            "Content-Length": img.length
-        });
-        res.end(img);
+        res.setHeader("Content-Type", "image/png");
+        res.send(qrBuffer);
 
     } catch (err) {
         console.error("QR error:", err);
@@ -269,172 +651,176 @@ app.get("/outpass-qr/:token", async (req, res) => {
 });
 
 
+// =====================================
+//   SCAN / CONSUME OUTPASS (SECURITY)
+// =====================================
 app.post("/scan-outpass/:token", async (req, res) => {
+  try {
     const token = req.params.token;
     const { keycode } = req.body;
 
-    // 🔐 Verify key code
-    if (keycode !== "verifygh") {
-        return res.send("<h2>❌ Invalid Verification Key</h2>");
-    }
-
     const [rows] = await db.execute(
-        `SELECT * FROM hostel_outpass_requests 
-         WHERE qr_token = ? AND status = 'Approved'`,
-        [token]
+      `SELECT o.*, h.residence_type
+       FROM hostel_outpass_requests o
+       JOIN hostel_admissions h ON o.user_id = h.user_id
+       WHERE o.qr_token = ? AND o.status = 'Approved'`,
+      [token]
     );
 
-    if (rows.length === 0) {
-        return res.send("<h2>❌ Invalid or Expired Outpass</h2>");
+    if (!rows || rows.length === 0) {
+      return res.send("<h2>❌ Invalid or Expired Outpass</h2>");
     }
 
-    if (rows[0].scanned_at) {
-        return res.send("<h2>⚠️ Outpass already used</h2>");
+    const data = rows[0];
+
+    // ❌ Already used
+    if (data.scanned_at) {
+      return res.send("<h2>⚠️ Outpass already used</h2>");
     }
 
-    await db.execute(
+    // 🔥 TIME VALIDATION
+    const now = new Date();
+    const inTime = new Date(data.in_datetime);
+
+    if (now > inTime) {
+      // ⏰ EXPIRED
+      await db.execute(
         `UPDATE hostel_outpass_requests
-         SET scanned_at = NOW()
+         SET status = 'EXPIRED'
          WHERE qr_token = ?`,
         [token]
+      );
+
+      return res.send("<h2>⏰ Outpass Expired</h2>");
+    }
+
+    // 🔑 KEY VALIDATION
+    let validKey = data.residence_type === "BOYS_HOSTEL" ? "verifybh" : "verifygh";
+
+    if (keycode !== validKey) {
+      return res.send("<h2>❌ Invalid Verification Key</h2>");
+    }
+
+    // ✅ SUCCESS → MARK USED
+    await db.execute(
+      `UPDATE hostel_outpass_requests
+       SET scanned_at = NOW(),
+           status = 'USED'
+       WHERE qr_token = ?`,
+      [token]
     );
 
     res.send(`
-        <h2 style="color:green;">✅ Outpass Verified Successfully</h2>
-        <p>This outpass is now invalid for further use.</p>
+      <h2 style="color:green;">✅ Outpass Verified Successfully</h2>
+      <p>Valid entry recorded.</p>
     `);
+
+  } catch (err) {
+    console.error("Scan error:", err);
+    res.status(500).send("Scan failed");
+  }
 });
 
-
-
+// =====================================
+//   AUTO-EXPIRE OLD APPROVED OUTPASSES
+// =====================================
 setInterval(async () => {
+  try {
     await db.execute(`
-        UPDATE hostel_outpass_requests
-        SET status='Rejected'
-        WHERE status='Approved'
+      UPDATE hostel_outpass_requests
+      SET status = 'EXPIRED'
+      WHERE status = 'Approved'
         AND scanned_at IS NULL
-        AND expires_at < NOW()
+        AND in_datetime < NOW()
     `);
-}, 60 * 60 * 1000); // every hour
+  } catch (err) {
+    console.error("Auto-expire outpass error:", err);
+  }
+}, 60 * 60 * 1000);
 
+// =====================================
+//   VERIFY OUTPASS (INFO + SCAN FORM)
+// =====================================
 app.get("/verify-outpass/:token", async (req, res) => {
+  try {
     const token = req.params.token;
 
-    const [rows] = await db.execute(`
-        SELECT 
-            o.id,
-            o.student_name,
-            o.user_id,
-            o.out_datetime,
-            o.approved_at,
-            o.scanned_at,
-            h.course_year,
-            h.block_name,
-            h.room_number
-        FROM hostel_outpass_requests o
-        JOIN hostel_admissions h ON o.user_id = h.user_id
-        WHERE o.qr_token = ?
-        AND o.status = 'Approved'
-    `, [token]);
+    const [rows] = await db.execute(
+      `SELECT 
+        o.id,
+        o.student_name,
+        o.user_id,
+        o.in_datetime,
+        o.out_datetime,
+        o.approved_at,
+        o.scanned_at,
+        h.course_year,
+        h.block_name,
+        h.room_number,
+        h.residence_type
+      FROM hostel_outpass_requests o
+      JOIN hostel_admissions h ON o.user_id = h.user_id
+      WHERE o.qr_token = ?
+        AND o.status = 'Approved'`,
+      [token]
+    );
 
-    if (rows.length === 0) {
-        return res.send("<h2>❌ Invalid or Expired Outpass</h2>");
+    if (!rows || rows.length === 0) {
+      return res.send("<h2>❌ Invalid or Expired Outpass</h2>");
     }
 
     const o = rows[0];
 
+    // ✅ CHECK USED FIRST
     if (o.scanned_at) {
-        return res.send("<h2>⚠️ Outpass already used</h2>");
+      return res.send("<h2>⚠️ Outpass already used</h2>");
     }
+
+    // ✅ THEN CHECK EXPIRY
+    const now = new Date();
+    const inTime = new Date(o.in_datetime);
+
+    if (now > inTime) {
+      return res.send("<h2>⏰ Outpass Expired</h2>");
+    }
+
+    let keyHint = o.residence_type === "BOYS_HOSTEL" ? "verifybh" : "verifygh";
 
     res.send(`
-        <html>
-        <head>
-            <title>Verify Outpass</title>
-            <style>
-                body { font-family: Arial; background:#eef2f7; padding:30px; }
-                .card {
-                    max-width:500px;
-                    margin:auto;
-                    background:white;
-                    padding:25px;
-                    border-radius:10px;
-                    box-shadow:0 0 10px #ccc;
-                }
-                input {
-                    width:100%;
-                    padding:10px;
-                    margin:12px 0;
-                }
-                button {
-                    width:100%;
-                    padding:12px;
-                    background:green;
-                    color:white;
-                    border:none;
-                    font-size:16px;
-                    border-radius:5px;
-                    cursor:pointer;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>Outpass Verification</h2>
+      <html>
+      <head>
+        <title>Verify Outpass</title>
+      </head>
+      <body>
+        <h2>Outpass Verification</h2>
 
-                <p><b>Name:</b> ${o.student_name}</p>
-                <p><b>User ID:</b> ${o.user_id}</p>
-                <p><b>Course:</b> ${o.course_year}</p>
-                <p><b>Block:</b> ${o.block_name}</p>
-                <p><b>Room:</b> ${o.room_number}</p>
-                <p><b>Out Time:</b> ${new Date(o.out_datetime).toLocaleString()}</p>
-                <p><b>Approved At:</b> ${new Date(o.approved_at).toLocaleString()}</p>
+        <p><b>Name:</b> ${o.student_name}</p>
+        <p><b>User ID:</b> ${o.user_id}</p>
+        <p><b>Course:</b> ${o.course_year}</p>
+        <p><b>Block:</b> ${o.block_name}</p>
+        <p><b>Room:</b> ${o.room_number}</p>
+        <p><b>Out Time:</b> ${new Date(o.out_datetime).toLocaleString()}</p>
+        <p><b>Approved At:</b> ${new Date(o.approved_at).toLocaleString()}</p>
 
-                <form method="POST" action="/scan-outpass/${token}">
-                    <label><b>Verification Key</b></label>
-                    <input type="password" name="keycode" placeholder="Enter verification key" required>
-
-                    <button type="submit">VERIFY OUTPASS</button>
-                </form>
-            </div>
-        </body>
-        </html>
+        <form method="POST" action="/scan-outpass/${token}">
+          <input type="password" name="keycode" placeholder="Enter key" required>
+          <small>Hint: ${keyHint}</small>
+          <button type="submit">VERIFY</button>
+        </form>
+      </body>
+      </html>
     `);
+
+  } catch (err) {
+    console.error("Verify outpass error:", err);
+    res.status(500).send("Verification failed");
+  }
 });
 
-// =====================================
-//   GET ALL OUTPASS REQUESTS (WARDEN)
-// =====================================
-app.get("/warden/outpass-requests", async (req, res) => {
-    try {
-        const [rows] = await db.execute(`
-            SELECT 
-                id,
-                student_name,
-                out_datetime,
-                in_datetime,
-                reason,
-                status,
-                qr_token
-            FROM hostel_outpass_requests
-            ORDER BY created_at DESC
-        `);
-
-        res.json(rows);
-    } catch (err) {
-        console.error("Fetch outpass requests error:", err);
-        res.status(500).json({ error: "Failed to fetch outpass requests" });
-    }
-});
-
-// =========================
-//        LOGIN ROUTE
-// =========================
 app.post("/login", async (req, res) => {
     try {
         const { user_id, password } = req.body;
 
-        // 1️⃣ Check user exists
         const [rows] = await db.execute(
             "SELECT * FROM users WHERE user_id = ?",
             [user_id]
@@ -449,7 +835,6 @@ app.post("/login", async (req, res) => {
 
         const user = rows[0];
 
-        // 2️⃣ Compare password
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
@@ -459,7 +844,13 @@ app.post("/login", async (req, res) => {
             });
         }
 
-        // 3️⃣ Success → send role
+        // 🔥🔥🔥 ADD THIS (MOST IMPORTANT)
+        req.session.user = {
+            user_id: user.user_id,
+            role: user.role
+        };
+
+        // Send response
         res.json({
             success: true,
             role: user.role,
@@ -512,6 +903,143 @@ app.get("/student/details/:user_id", async (req, res) => {
     } catch (err) {
         console.error("Student details error:", err);
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+
+app.get("/get-blocks", async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            `SELECT DISTINCT block_name FROM hostel_admissions`
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+app.get("/get-rooms", async (req, res) => {
+    try {
+        const { block } = req.query;
+
+        const [rows] = await db.execute(
+            `SELECT DISTINCT room_number 
+             FROM hostel_admissions 
+             WHERE block_name = ?`,
+            [block]
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+app.get("/get-students", async (req, res) => {
+    try {
+        const { block, room } = req.query;
+
+        const [rows] = await db.execute(
+            `SELECT id, name, user_id, roll_number 
+             FROM hostel_admissions
+             WHERE block_name = ? AND room_number = ?`,
+            [block, room]
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+
+app.post("/update-reg-no", async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        const { id, roll_number } = req.body;
+
+        if (!roll_number) {
+            return res.json({
+                success: false,
+                message: "Reg Number is required"
+            });
+        }
+
+        // 🔐 SECURITY
+        if (!req.session.user || req.session.user.role !== "warden") {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        await connection.beginTransaction();
+
+        // 1️⃣ Get old user_id
+        const [rows] = await connection.execute(
+            `SELECT user_id FROM hostel_admissions WHERE id = ?`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            throw new Error("Student not found");
+        }
+
+        const oldUserId = rows[0].user_id;
+        const newUserId = roll_number;
+
+        // 2️⃣ Check if new user_id already exists
+        const [check] = await connection.execute(
+            `SELECT * FROM users WHERE user_id = ?`,
+            [newUserId]
+        );
+
+        if (check.length > 0) {
+            return res.json({
+                success: false,
+                message: "This Reg Number already exists as User ID"
+            });
+        }
+
+        // 3️⃣ Update hostel_admissions
+        await connection.execute(
+            `UPDATE hostel_admissions
+             SET roll_number = ?, user_id = ?
+             WHERE id = ?`,
+            [roll_number, newUserId, id]
+        );
+
+        // 4️⃣ Update users table
+        await connection.execute(
+            `UPDATE users
+             SET user_id = ?
+             WHERE user_id = ?`,
+            [newUserId, oldUserId]
+        );
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: "Reg No & User ID updated successfully"
+        });
+
+    } catch (err) {
+        await connection.rollback();
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+
+    } finally {
+        connection.release();
     }
 });
 
@@ -591,74 +1119,14 @@ app.post("/student/submit-complaint", async (req, res) => {
 });
 
 
-app.get('/api/getFees', async (req, res) => {
-    const { reg_no } = req.query;
-
-    const [rows] = await db.query(
-        `SELECT room_rent, mess_deposit_1, mess_deposit_2 
-         FROM hostel_fee_structure 
-         WHERE reg_no = ?`,
-        [reg_no]
-    );
-
-    if (!rows.length) return res.json([]);
-
-    const r = rows[0];
-
-    res.json([
-        { type: 'ROOM_RENT', amount: r.room_rent },
-        { type: 'MESS_1', amount: r.mess_deposit_1 },
-        { type: 'MESS_2', amount: r.mess_deposit_2 }
-    ]);
-});
-
-app.post('/api/addTransaction', async (req, res) => {
-    const { reg_no, fee_type, amount, transaction_id } = req.body;
-
-    try {
-        await db.query(
-            `INSERT INTO student_transactions 
-            (reg_no, fee_type, amount, transaction_id) 
-            VALUES (?, ?, ?, ?)`,
-            [reg_no, fee_type, amount, transaction_id]
-        );
-
-        res.json({ success: true });
-
-    } catch (err) {
-        res.status(400).json({ error: "Duplicate or invalid transaction" });
-    }
-});
-
-app.get('/api/getRegNo/:user_id', async (req, res) => {
-    try {
-        const { user_id } = req.params;
-
-        const [rows] = await db.query(
-            `SELECT reg_no FROM railway.students WHERE userId = ?`,
-            [user_id]
-        );
-
-        if (!rows.length) {
-            return res.status(404).json({ error: "Student not found" });
-        }
-
-        res.json({ reg_no: rows[0].reg_no });
-
-    } catch (err) {
-        console.error("getRegNo error:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-
 app.get('/api/getStudentInfo/:user_id', async (req, res) => {
     try {
         const { user_id } = req.params;
 
         const [rows] = await db.query(
-            `SELECT reg_no, uniqueId 
-             FROM railway.students 
-             WHERE userId = ?`,
+            `SELECT user_id, course_year, academic_year, name 
+             FROM hostel_management_system.hostel_admissions 
+             WHERE user_id = ?`,
             [user_id]
         );
 
@@ -666,10 +1134,7 @@ app.get('/api/getStudentInfo/:user_id', async (req, res) => {
             return res.status(404).json({ error: "Student not found" });
         }
 
-        res.json({
-            reg_no: rows[0].reg_no,
-            unique_id: rows[0].uniqueId
-        });
+        res.json(rows[0]);
 
     } catch (err) {
         console.error("Student info error:", err);
@@ -678,25 +1143,225 @@ app.get('/api/getStudentInfo/:user_id', async (req, res) => {
 });
 
 
-app.post('/api/addTransaction', async (req, res) => {
-    const { reg_no, unique_id, fee_type, amount, transaction_id } = req.body;
-
+app.get('/api/getFees/:user_id', async (req, res) => {
     try {
-        await db.query(
-            `INSERT INTO student_transactions 
-            (reg_no, unique_id, fee_type, amount, transaction_id) 
-            VALUES (?, ?, ?, ?, ?)`,
-            [reg_no, unique_id, fee_type, amount, transaction_id]
+        const { user_id } = req.params;
+
+        // 🔹 get all fee structures
+        const [fees] = await db.query(
+            `SELECT year, room_rent, mess_deposit_1, mess_deposit_2, academic_year
+             FROM hostel_management_system.hostel_fee_structure
+             WHERE user_id = ?
+             ORDER BY year ASC`,
+            [user_id]
         );
 
-        res.json({ success: true });
+        if (!fees.length) {
+            return res.json([]);
+        }
+
+        // 🔹 get verified payments
+        const [payments] = await db.query(
+            `SELECT fee_type, SUM(amount) as paid
+             FROM hostel_management_system.student_transactions
+             WHERE user_id = ? AND status = 'VERIFIED'
+             GROUP BY fee_type`,
+            [user_id]
+        );
+
+        const paidMap = {};
+        payments.forEach(p => {
+            paidMap[p.fee_type] = p.paid;
+        });
+
+        // 🔹 format response year-wise
+        const result = fees.map(f => {
+            return {
+                year: f.year,
+                academic_year: f.academic_year,
+                fees: [
+                    {
+                        type: "ROOM_RENT",
+                        total: f.room_rent,
+                        paid: paidMap["ROOM_RENT"] || 0,
+                        pending: f.room_rent - (paidMap["ROOM_RENT"] || 0)
+                    },
+                    {
+                        type: "MESS_1",
+                        total: f.mess_deposit_1,
+                        paid: paidMap["MESS_1"] || 0,
+                        pending: f.mess_deposit_1 - (paidMap["MESS_1"] || 0)
+                    },
+                    {
+                        type: "MESS_2",
+                        total: f.mess_deposit_2,
+                        paid: paidMap["MESS_2"] || 0,
+                        pending: f.mess_deposit_2 - (paidMap["MESS_2"] || 0)
+                    }
+                ]
+            };
+        });
+
+        res.json(result);
 
     } catch (err) {
-        console.error("Transaction error:", err);
-        res.status(400).json({ error: "Duplicate or invalid transaction" });
+        console.error("Get Fees error:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 
+app.post('/api/addTransaction', async (req, res) => {
+    try {
+        const { user_id, fee_type, amount, transaction_id } = req.body;
+
+        if (!user_id || !fee_type || !amount || !transaction_id) {
+            return res.status(400).json({ error: "Missing fields" });
+        }
+
+        // ✅ GET ACADEMIC YEAR (FINAL)
+        const [admissionData] = await db.query(
+            `SELECT academic_year 
+             FROM hostel_management_system.hostel_admissions 
+             WHERE user_id = ?`,
+            [user_id]
+        );
+
+        if (admissionData.length === 0) {
+            return res.status(404).json({ error: "Student admission not found" });
+        }
+
+        const academic_year = admissionData[0].academic_year;
+
+        // 🔥 MATCH WITH BANK
+        const [bankMatch] = await db.query(
+            `SELECT * FROM hostel_management_system.hostel_bank_statements
+             WHERE ref_no LIKE CONCAT('%', ?, '%')
+             AND credit = ?`,
+            [transaction_id, amount]
+        );
+
+        let status = "PENDING";
+        let verified_at = null;
+
+        if (bankMatch.length > 0) {
+            status = "VERIFIED";
+            verified_at = new Date();
+        }
+
+        // ✅ INSERT WITH ACADEMIC YEAR
+        await db.query(
+            `INSERT INTO hostel_management_system.student_transactions
+            (user_id, academic_year, fee_type, amount, transaction_id, status, verified_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [user_id, academic_year, fee_type, amount, transaction_id, status, verified_at]
+        );
+
+        res.json({
+            success: true,
+            message: status === "VERIFIED"
+                ? "Transaction auto verified"
+                : "Transaction submitted (pending verification)"
+        });
+
+    } catch (err) {
+        console.error("Transaction error:", err);
+
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: "Transaction ID already used" });
+        }
+
+        res.status(400).json({ error: "Something went wrong" });
+    }
+});
+
+app.post('/api/verifyTransaction', async (req, res) => {
+    try {
+        const { transaction_id } = req.body;
+
+        if (!req.session.user || req.session.user.role !== "warden") {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        const [result] = await db.query(
+            `UPDATE hostel_management_system.student_transactions
+             SET status = 'VERIFIED', verified_at = NOW()
+             WHERE transaction_id = ? AND status = 'PENDING'`,
+            [transaction_id]
+        );
+
+        res.json({
+            success: true,
+            message: result.affectedRows > 0 
+                ? "Transaction Verified"
+                : "Already verified or not found"
+        });
+
+    } catch (err) {
+        console.error("Verification error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/pendingTransactions', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            `SELECT * FROM hostel_management_system.student_transactions
+             WHERE status = 'PENDING'
+             ORDER BY created_at DESC`
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error("Pending tx error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+app.post("/upload-bank-statement", upload.single("file"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        const filePath = path.resolve(req.file.path);
+
+        exec(`python hostel_bank_extract.py "${filePath}"`, async (error, stdout, stderr) => {
+
+            if (error) {
+                console.error("Python Error:", error);
+                console.error("STDERR:", stderr);
+                return res.status(500).json({ error: "Processing failed" });
+            }
+
+            console.log("Python Output:", stdout);
+
+            // 🔥 AUTO VERIFY (FIXED)
+            const [result] = await db.query(`
+                UPDATE hostel_management_system.student_transactions st
+                JOIN hostel_management_system.hostel_bank_statements bs
+                ON TRIM(bs.ref_no) LIKE CONCAT('%', TRIM(st.transaction_id), '%')
+                AND ABS(st.amount - bs.credit) <= 5
+                SET 
+                    st.status = 'VERIFIED',
+                    st.verified_at = NOW()
+                WHERE st.status = 'PENDING'
+            `);
+
+            console.log("Verified Rows:", result.affectedRows);
+
+            res.json({
+                success: true,
+                message: `Excel processed. ${result.affectedRows} transactions verified`
+            });
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
 // routes/hostel.js
 app.get("/api/hostel/students", async (req, res) => {
     try {
@@ -958,6 +1623,189 @@ if (branch && branch !== "ALL") {
     }
 });
 
+app.post("/apply-fee-structure", async (req, res) => {
+    const connection = await db.getConnection(); // transaction
+
+    try {
+        const { current_year, next_year, residence_type, room_rent, mess1, mess2, academic_year } = req.body;
+
+        if (!req.session.user || req.session.user.role !== "warden") {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        await connection.beginTransaction();
+
+        // 🔍 get students
+        const [students] = await connection.execute(
+            `SELECT user_id FROM hostel_management_system.hostel_admissions 
+             WHERE course_year = ?`,
+            [current_year]
+        );
+
+        if (students.length === 0) {
+            return res.json({ message: "No students found" });
+        }
+
+        for (let stu of students) {
+            if (!stu.user_id) continue;
+
+            // ✅ INSERT / UPDATE FEE
+            await connection.execute(
+                `INSERT INTO hostel_management_system.hostel_fee_structure 
+                (user_id, year, residence_type, room_rent, mess_deposit_1, mess_deposit_2, academic_year)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                room_rent = VALUES(room_rent),
+                mess_deposit_1 = VALUES(mess_deposit_1),
+                mess_deposit_2 = VALUES(mess_deposit_2),
+                residence_type = VALUES(residence_type),
+                academic_year = VALUES(academic_year)
+                `,
+                [
+                    stu.user_id,   // 🔥 FIXED (was roll_number)
+                    next_year,
+                    residence_type,
+                    room_rent,
+                    mess1,
+                    mess2,
+                    academic_year
+                ]
+            );
+        }
+
+        // ✅ UPDATE STUDENTS YEAR
+        await connection.execute(
+            `UPDATE hostel_management_system.hostel_admissions
+             SET course_year = ?, academic_year = ?
+             WHERE course_year = ?`,
+            [next_year, academic_year, current_year]
+        );
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: `✅ Fee applied & students promoted (${current_year} → ${next_year})`
+        });
+
+    } catch (err) {
+        await connection.rollback();
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    } finally {
+        connection.release();
+    }
+});
+app.get("/get-students-for-renewal", async (req, res) => {
+    try {
+        const { year } = req.query;
+
+        const [rows] = await db.execute(`
+            SELECT 
+                id,
+                name,
+                roll_number,
+                block_name,
+                room_number,
+                course_year
+            FROM hostel_admissions
+            WHERE course_year LIKE ?
+        `, [`${year}%`]);
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
+
+app.post("/renew-students", async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        const { ids } = req.body;
+
+        if (!req.session.user || req.session.user.role !== "warden") {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        await connection.beginTransaction();
+
+        for (let id of ids) {
+
+            const [rows] = await connection.execute(`
+                SELECT roll_number, course_year
+                FROM hostel_admissions
+                WHERE id = ?
+            `, [id]);
+
+            if (rows.length === 0) continue;
+
+            const regNo = rows[0].roll_number;
+            const currentYear = parseInt(rows[0].course_year);
+            const nextYear = currentYear + 1;
+
+            // 🔥 UPDATE YEAR
+            await connection.execute(`
+                UPDATE hostel_admissions
+                SET course_year = ?
+                WHERE id = ?
+            `, [nextYear, id]);
+
+            // 🔥 INSERT FEE (DEFAULT)
+            await connection.execute(`
+                INSERT INTO hostel_fee_structure
+                (reg_no, year, residence_type, room_rent, mess_deposit_1, mess_deposit_2)
+                VALUES (?, ?, 'BOYS_HOSTEL', 0, 0, 0)
+                ON DUPLICATE KEY UPDATE year = VALUES(year)
+            `, [
+                regNo,
+                nextYear
+            ]);
+        }
+
+        await connection.commit();
+
+        res.json({
+            success: true,
+            message: "Renewal completed successfully"
+        });
+
+    } catch (err) {
+        await connection.rollback();
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    } finally {
+        connection.release();
+    }
+});
+app.get("/get-students-by-year", async (req, res) => {
+    try {
+        const { year } = req.query;
+
+        const [rows] = await db.execute(
+            `SELECT id, name, roll_number 
+             FROM hostel_admissions
+             WHERE course_year = ?`,
+            [year]
+        );
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
 
 // Start server
 app.listen(3000, () => console.log("Hostel Management Server running on port 3000"));

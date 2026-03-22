@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bank Statement Upload</title>
+
+<style>
+body {
+    background: #0f172a;
+    color: white;
+    font-family: Arial;
+    padding: 40px;
+}
+
+.container {
+    max-width: 500px;
+    margin: auto;
+    background: #1e293b;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+h2 {
+    margin-bottom: 20px;
+}
+
+input[type="file"] {
+    margin: 15px 0;
+    width: 100%;
+    padding: 10px;
+    background: #334155;
+    border: none;
+    border-radius: 6px;
+    color: white;
+}
+
+button {
+    padding: 12px;
+    width: 100%;
+    background: #22c55e;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover {
+    background: #16a34a;
+}
+
+button:disabled {
+    background: gray;
+    cursor: not-allowed;
+}
+
+.loader {
+    margin-top: 15px;
+    display: none;
+}
+
+.success {
+    color: #22c55e;
+    margin-top: 10px;
+}
+
+.error {
+    color: #ef4444;
+    margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Upload SBI Bank Statement (Excel)</h2>
+
+    <!-- ✅ ACCEPT EXCEL -->
+    <input type="file" id="file" accept=".xlsx, .xls">
+
+    <button id="uploadBtn" onclick="uploadFile()">Upload & Process</button>
+
+    <div class="loader" id="loader">⏳ Processing Excel... Please wait</div>
+    <div id="message"></div>
+</div>
+
+<script>
+const BASE_URL = window.location.hostname === "localhost"
+  ? "http://localhost:3000"
+  : "https://crrehostel.onrender.com";
+
+async function uploadFile() {
+
+    const fileInput = document.getElementById("file");
+    const button = document.getElementById("uploadBtn");
+    const loader = document.getElementById("loader");
+    const message = document.getElementById("message");
+
+    message.innerHTML = "";
+
+    if (!fileInput.files.length) {
+        message.innerHTML = "<p class='error'>Please select an Excel file</p>";
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    // ✅ Validate Excel file
+    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+        message.innerHTML = "<p class='error'>Only Excel (.xlsx) files allowed</p>";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        button.disabled = true;
+        loader.style.display = "block";
+
+        const res = await fetch(`${BASE_URL}/upload-bank-statement`, {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        loader.style.display = "none";
+        button.disabled = false;
+
+        if (data.error) {
+            message.innerHTML = `<p class='error'>${data.error}</p>`;
+            return;
+        }
+
+        message.innerHTML = `<p class='success'>✅ Excel processed successfully</p>`;
+
+        fileInput.value = "";
+
+    } catch (err) {
+        console.error(err);
+
+        loader.style.display = "none";
+        button.disabled = false;
+
+        message.innerHTML = "<p class='error'>Upload failed. Try again</p>";
+    }
+}
+</script>
+
+</body>
+</html>

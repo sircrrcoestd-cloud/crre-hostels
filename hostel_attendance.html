@@ -2,291 +2,971 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Hostel Attendance</title>
+<title>Hostel Attendance | Hostel Warden Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="crrengglogo.png" type="image/png" />
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.min.css"
+/>
 
 <style>
-/* ================= Global ================= */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+:root {
+  --primary-color: #0b2e59;
+  --secondary-color: #2c6e91;
+  --accent-color: #f7a048;
+  --background-dark: #f0f2f5;
+  --background-light: #ffffff;
+  --text-dark: #333333;
+  --text-light: #f4f4f4;
+  --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  --border-radius-lg: 16px;
+  --border-radius-md: 10px;
+  --success-color: #22c55e;
+  --danger-color: #ef4444;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #eef2f7;
+  background-color: var(--background-dark);
 }
 
-/* ================= Top bar ================= */
-.topbar {
-    background: #0b1c3c;
-    color: white;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-}
-.menu-btn {
-    font-size: 22px;
-    cursor: pointer;
-    margin-right: 15px;
+body.no-scroll {
+  overflow: hidden;
 }
 
-/* ================= Sidebar ================= */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: -220px;
-    width: 220px;
-    height: 100%;
-    background: #0b1c3c;
-    color: white;
-    padding-top: 60px;
-    transition: 0.3s;
-    z-index: 1000;
-}
-.sidebar a {
-    display: block;
-    padding: 15px;
-    color: white;
-    text-decoration: none;
-    font-size: 16px;
-}
-.sidebar a:hover {
-    background: #1a3a60;
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
-/* ================= Content ================= */
-.content {
-    padding: 30px;
-}
-
-/* ================= Attendance UI (UNCHANGED) ================= */
 .container {
-    width: 90%;
-    margin: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
+  display: flex;
+  min-height: 100vh;
 }
 
-.rooms {
-    white-space: nowrap;
-    overflow-x: auto;
-    padding: 10px;
-    border-bottom: 2px solid #ccc;
-    margin-top: 20px;
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background-color: var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  padding: 30px 20px;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.photo-container {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.home-icon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: var(--background-light);
+  color: var(--primary-color);
+  border-radius: 50%;
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.home-icon:hover {
+  transform: scale(1.1);
+  background-color: var(--accent-color);
+  color: var(--text-light);
+}
+
+.sidebar-photo {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  border: 4px solid var(--accent-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar h2 {
+  margin: 40px 20px 10px 20px;
+  color: var(--text-light);
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.sidebar h3 {
+  margin: 0 20px 20px 20px;
+  color: #cfe4ff;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.menu {
+  list-style: none;
+  padding: 0;
+  flex-grow: 1;
+}
+
+.menu li {
+  list-style: none;
+  margin-bottom: 12px;
+}
+
+.menu li a {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 1rem;
+  color: var(--text-light);
+  padding: 15px 20px;
+  border-radius: var(--border-radius-md);
+  transition: all 0.3s ease;
+}
+
+.menu li a:hover,
+.menu li.active a {
+  background-color: rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  transform: translateX(5px);
+  box-shadow: var(--card-shadow);
+}
+
+.menu li a i {
+  font-size: 1.2rem;
+  width: 25px;
+  text-align: center;
+  color: var(--text-light);
+  transition: color 0.3s ease;
+}
+
+.logout {
+  background-color: var(--accent-color);
+  color: var(--text-light);
+  border: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  width: 70%;
+  margin: 20px auto 10px;
+  transition: background 0.3s ease, transform 0.2s ease;
+  display: block;
+  text-align: center;
+}
+
+.logout:hover {
+  background-color: #d3853b;
+  transform: scale(1.05);
+}
+
+/* Main Section */
+.main-section {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--background-dark);
+  padding: 40px 30px;
+  margin-left: 280px;
+  transition: margin-left 0.3s ease-in-out;
+  min-height: 100vh;
+}
+
+/* Main Card */
+.details-card {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+  width: 100%;
+  max-width: 1150px;
+  padding: 35px;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.details-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+}
+
+.details-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.details-card h2 {
+  text-align: center;
+  color: var(--primary-color);
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  padding-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.details-sub {
+  text-align:center;
+  font-size:0.95rem;
+  color:var(--secondary-color);
+  margin-bottom:18px;
+}
+
+/* Filter Row for Date + Block + Load */
+.filter-bar {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: var(--border-radius-md);
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+}
+
+.filter-row {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+
+.filter-row label {
+  font-size:0.9rem;
+  font-weight:600;
+  color:var(--primary-color);
+}
+
+.filter-row input,
+.filter-row select,
+.filter-row button {
+  padding:9px 12px;
+  border-radius:999px;
+  border:1px solid rgba(0,0,0,0.1);
+  font-size:0.9rem;
+}
+
+.filter-row input[type="date"] {
+  background:#fff;
+}
+
+.filter-row select {
+  min-width:150px;
+  background:#fff;
+}
+
+.btn-load {
+  background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(11,46,89,0.4);
+}
+.btn-load:hover {
+  transform:translateY(-1px);
+}
+
+/* Rooms row */
+.rooms-strip {
+  margin-top:10px;
+  padding:10px;
+  border-radius:var(--border-radius-md);
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  white-space:nowrap;
+  overflow-x:auto;
 }
 
 .room-box {
-    display: inline-block;
-    padding: 10px 20px;
-    margin-right: 10px;
-    background: #007bff;
-    color: white;
-    border-radius: 5px;
-    cursor: pointer;
+  display:inline-block;
+  padding:8px 16px;
+  margin-right:8px;
+  background:#0b2e59;
+  color:white;
+  border-radius:999px;
+  cursor:pointer;
+  font-size:0.9rem;
+  transition:background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 .room-box:hover {
-    background: #0056b3;
+  background:#17457f;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(15,23,42,0.35);
+}
+.room-box.active {
+  background:#f7a048;
+}
+
+/* Student list */
+.student-list {
+  margin-top:16px;
 }
 
 .student-row {
-    padding: 10px;
-    display: flex;
-    justify-content: space-between;
-    background: #f2f2f2;
-    margin-top: 10px;
-    border-radius: 5px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 14px;
+  background:#f8f9fb;
+  margin-top:8px;
+  border-radius:var(--border-radius-md);
+  box-shadow:0 1px 4px rgba(0,0,0,0.04);
 }
 
-.present-btn {
-    width: 25px;
-    height: 25px;
-    background: green;
-    border-radius: 5px;
-    cursor: pointer;
+.student-name {
+  font-weight:600;
+  color:var(--primary-color);
+  font-size:0.95rem;
 }
 
+.att-btns {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.present-btn,
 .absent-btn {
-    width: 25px;
-    height: 25px;
-    background: red;
-    border-radius: 5px;
-    cursor: pointer;
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  cursor:pointer;
+  border:none;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+  opacity:0.35;
+  transition:opacity 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+}
+.present-btn { background:var(--success-color); }
+.absent-btn  { background:var(--danger-color); }
+
+.present-btn.selected,
+.absent-btn.selected {
+  opacity:1 !important;
+  box-shadow:0 0 0 2px rgba(15,23,42,0.35);
 }
 
+.present-btn:hover,
+.absent-btn:hover {
+  transform:scale(1.05);
+}
+
+/* Badge: Attendance Submitted */
+.submitted-badge {
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:0.78rem;
+  background:#e0f2fe;
+  color:#0369a1;
+  border:1px solid #7dd3fc;
+}
+
+/* Submit button */
 .submit-btn {
+  width:100%;
+  padding:12px;
+  margin-top:20px;
+  border:none;
+  border-radius:999px;
+  background:linear-gradient(135deg,var(--success-color),#16a34a);
+  color:white;
+  font-size:1rem;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:0 4px 15px rgba(22,163,74,0.6);
+}
+.submit-btn:hover {
+  transform:translateY(-1px);
+}
+
+/* Loading / Empty states */
+.info-state {
+  text-align:center;
+  padding:30px 20px;
+  font-size:0.95rem;
+  color:var(--secondary-color);
+}
+
+/* Mobile Toggle & Overlay */
+.mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: var(--secondary-color);
+  color: var(--text-light);
+  font-size: 24px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 999;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .main-section {
+    padding: 30px 20px;
+  }
+  .details-card {
+    padding: 25px;
+  }
+}
+
+@media (max-width: 992px) {
+  .mobile-toggle {
+    display: flex;
+  }
+  .sidebar {
+    transform: translateX(-100%);
+    width: 250px;
+    max-width: 85vw;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-section {
+    margin-left: 0;
+    padding: 20px;
+  }
+  .details-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 576px) {
+  .sidebar {
+    width: 220px;
+    max-width: 75vw;
+    padding: 20px 15px;
+  }
+  .sidebar h2 {
+    font-size: 1rem;
+  }
+  .menu li a {
+    font-size: 0.9rem;
+    padding: 12px 15px;
+  }
+  .details-card {
+    padding: 15px;
+  }
+  .filter-row {
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .filter-row input,
+  .filter-row select,
+  .filter-row button {
+    width:100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .mobile-toggle {
+    width: 40px;
+    height: 40px;
+  }
+  .sidebar {
+    width: 200px;
+  }
+  .details-card {
     padding: 12px;
-    width: 100%;
-    background: green;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    border-radius: 5px;
-    margin-top: 20px;
+  }
 }
 </style>
 </head>
-
 <body>
 
-<!-- ================= TOP BAR ================= -->
-<div class="topbar">
-    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
-    <h2 style="margin:0;">Warden Dashboard</h2>
-</div>
-
-<!-- ================= SIDEBAR ================= -->
-<div class="sidebar" id="sidebar">
-    <a href="hostel_attendence.html">Attendance</a>
-    <a href="approve_outpass.html">Outpass</a>
-    <a href="hostel-admissions.html">Admission</a>
-</div>
-
-<!-- ================= CONTENT ================= -->
-<div class="content">
+<!-- Mobile overlay -->
+<div class="overlay" onclick="toggleMobileMenu()"></div>
 
 <div class="container">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="photo-container">
+      <a href="index.html" class="home-icon" title="Hostel Home">
+        <i class="fas fa-home"></i>
+      </a>
+      <img id="sidebarPhoto" class="sidebar-photo" style="display: none;" />
+    </div>
 
-<h2>Hostel Attendance</h2>
+    <h2>Warden ID: <span id="wardenId">Loading...</span></h2>
+    <h3 id="hostelTypeLabel">Hostel Attendance</h3>
 
-<label>Select Date</label>
-<input type="date" id="date">
+    <ul class="menu">
+      <li>
+        <a href="hostel_warden_dashboard.html">
+          <i class="fas fa-chart-line"></i> Backlog Dashboard
+        </a>
+      </li>
+      <li class="active">
+        <a href="Hostel_attendance.html">
+          <i class="fas fa-user-check"></i> Hostel Attendance
+        </a>
+      </li>
+      <li>
+        <a href="hostel_admissions.html">
+          <i class="fas fa-id-card-alt"></i> Hostel Admissions
+        </a>
+      </li>
+      <li>
+        <a href="hostel_approve_outpass.html">
+          <i class="fas fa-door-open"></i> Approve Outpass
+        </a>
+      </li>
+      <li>
+        <button class="logout" onclick="confirmLogout()">Logout</button>
+      </li>
+    </ul>
+  </div>
 
-<label>Select Block</label>
-<select id="block">
-    <option value="">-- Select Block --</option>
-    <option value="Old Block">Old Block</option>
-    <option value="New Block">New Block</option>
-    <option value="Amenities Block">Amenities Block</option>
-    <option value="Gym Block">Gym Block</option>
-    <option value="D Block">D Block</option>
-    <option value="E Block">E Block</option>
-</select>
+  <!-- MAIN -->
+  <div class="main-section">
+    <div class="details-card">
+      <h2><i class="fas fa-user-check"></i> Hostel Attendance</h2>
+      <div class="details-sub">
+        Mark daily hostel attendance room‑wise. Date is locked to current day (IST) for security.
+      </div>
 
-<button onclick="loadRooms()" style="padding:10px;background:#007bff;color:white;border:none;border-radius:5px;">
-    Load Rooms
-</button>
+      <!-- Filter Bar: Date + Block + Load Rooms -->
+      <div class="filter-bar">
+        <div class="filter-row">
+          <label for="date">Date</label>
+          <input type="date" id="date">
 
-<div id="rooms" class="rooms"></div>
-<div id="student-section"></div>
+          <label for="block">Block</label>
+          <select id="block">
+            <option>Loading...</option>
+          </select>
 
-<button class="submit-btn" onclick="submitAttendance()">Submit Attendance</button>
+          <button class="btn-load" type="button" onclick="loadRooms()">
+            <i class="fas fa-door-closed"></i>&nbsp;Load Rooms
+          </button>
+        </div>
+      </div>
 
+      <!-- Rooms strip -->
+      <div id="rooms" class="rooms-strip">
+        <!-- rooms here -->
+      </div>
+
+      <!-- Students -->
+      <div id="student-section" class="student-list">
+        <div class="info-state">
+          Select a block and room to start marking attendance.
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button class="submit-btn" onclick="submitAttendance()">
+        Save Attendance
+      </button>
+    </div>
+  </div>
 </div>
+
+<!-- Mobile FAB Toggle -->
+<div class="mobile-toggle" onclick="toggleMobileMenu()">
+  <i class="fas fa-bars"></i>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.all.min.js"></script>
 <script>
-/* ================= Sidebar ================= */
-const sidebar = document.getElementById("sidebar");
-
-function toggleSidebar() {
-    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
-}
-
-/* ================= Attendance Logic (UNCHANGED) ================= */
+let role = "";          // dynamic from user_id
 let selectedRoom = null;
 let attendanceData = [];
+let alreadyMarked = [];
 
-function loadRooms() {
-    const date = document.getElementById("date").value;
-    const block = document.getElementById("block").value;
+/* ===== MOBILE SIDEBAR ===== */
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.overlay');
+  const body = document.body;
 
-    if (!date || !block) {
-        alert("Please select Date and Block!");
-        return;
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('active');
+  body.classList.toggle('no-scroll');
+}
+
+/* ===== LOGOUT WITH SWEETALERT ===== */
+function confirmLogout() {
+  Swal.fire({
+    title: 'Logout?',
+    text: 'You will be logged out of this warden session.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#0b2e59',
+    cancelButtonColor: '#f7a048',
+    confirmButtonText: 'Yes, logout'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      logout();
     }
-
-    fetch(`/get-rooms/${block}`)
-        .then(res => res.json())
-        .then(data => {
-            let container = document.getElementById("rooms");
-            container.innerHTML = "";
-
-            data.forEach(r => {
-                let div = document.createElement("div");
-                div.className = "room-box";
-                div.innerText = r.room_number;
-                div.onclick = () => loadStudents(block, r.room_number);
-                container.appendChild(div);
-            });
-        });
+  });
 }
 
-function loadStudents(block, room) {
-    selectedRoom = room;
-    attendanceData = [];
-
-    fetch(`/get-students/${block}/${room}`)
-        .then(res => res.json())
-        .then(data => {
-            let section = document.getElementById("student-section");
-            section.innerHTML = "";
-
-            data.forEach(stu => {
-                let row = document.createElement("div");
-                row.className = "student-row";
-
-                let present = document.createElement("div");
-                present.className = "present-btn";
-
-                let absent = document.createElement("div");
-                absent.className = "absent-btn";
-
-                attendanceData.push({
-                    name: stu.name,
-                    attendance: null
-                });
-
-                present.onclick = () => {
-                    present.style.opacity = 1;
-                    absent.style.opacity = 0.3;
-                    updateAttendance(stu.name, "Present");
-                };
-
-                absent.onclick = () => {
-                    absent.style.opacity = 1;
-                    present.style.opacity = 0.3;
-                    updateAttendance(stu.name, "Absent");
-                };
-
-                row.innerHTML = `<b>${stu.name}</b>`;
-                row.appendChild(present);
-                row.appendChild(absent);
-
-                section.appendChild(row);
-            });
-        });
-}
-
-function updateAttendance(name, status) {
-    attendanceData = attendanceData.map(s =>
-        s.name === name ? { ...s, attendance: status } : s
-    );
-}
-
-function submitAttendance() {
-    const date = document.getElementById("date").value;
-    const block = document.getElementById("block").value;
-
-    if (!selectedRoom) {
-        alert("Please select a room!");
-        return;
-    }
-
-    fetch("/submit-attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            date,
-            block_name: block,
-            room_number: selectedRoom,
-            students: attendanceData
-        })
-    })
-    .then(res => res.json())
+function logout() {
+  fetch("/logout", { method: "GET", credentials: "include" })
     .then(() => {
-        alert("Attendance Submitted Successfully!");
+      localStorage.clear();
+      sessionStorage.clear();
+      if ("caches" in window) {
+        caches.keys().then(names => names.forEach(name => caches.delete(name)));
+      }
+      window.location.replace("login.html");
+    })
+    .catch(() => {
+      window.location.replace("login.html");
     });
 }
-</script>
 
+/* ===== INITIALIZE ===== */
+document.addEventListener("DOMContentLoaded", () => {
+  const wardenId = localStorage.getItem("user_id") || "";
+  const wardenLabel = document.getElementById("wardenId");
+  const hostelTypeLabel = document.getElementById("hostelTypeLabel");
+  const sidebarPhoto = document.getElementById("sidebarPhoto");
+
+  if (!wardenId) {
+    Swal.fire({
+      title: 'Access Denied',
+      text: 'Please login as Hostel Warden to access attendance.',
+      icon: 'error',
+      confirmButtonText: 'Go to Login',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      confirmButtonColor: '#0b2e59'
+    }).then(() => {
+      window.location.href = "login.html";
+    });
+    return;
+  }
+
+  // dynamic role from userId
+  role = wardenId;
+
+  wardenLabel.textContent = wardenId;
+  if (wardenId.startsWith("BH")) {
+    hostelTypeLabel.textContent = "Boys Hostel Attendance";
+  } else if (wardenId.startsWith("GH")) {
+    hostelTypeLabel.textContent = "Girls Hostel Attendance";
+  } else {
+    hostelTypeLabel.textContent = "Hostel Attendance";
+  }
+
+  // avatar
+  sidebarPhoto.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(wardenId)}&background=0b2e59&color=fff&rounded=true&bold=true&size=128`;
+  sidebarPhoto.style.display = "block";
+
+  // IST date lock
+  const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const dateInput = document.getElementById("date");
+  dateInput.value = todayIST;
+  dateInput.min = todayIST;
+  dateInput.max = todayIST;
+
+  // load blocks
+  loadBlocks();
+});
+
+/* ===== AUTO-CLOSE SIDEBAR LINKS (MOBILE) ===== */
+document.querySelectorAll(".menu li a").forEach(link => {
+  link.addEventListener("click", () => {
+    if (window.innerWidth <= 992) {
+      toggleMobileMenu();
+    }
+  });
+});
+
+/* ================= BLOCKS ================= */
+function loadBlocks(){
+  fetch(`/get-blocks?role=${encodeURIComponent(role)}`)
+    .then(res => res.json())
+    .then(data => {
+      let dropdown = document.getElementById("block");
+
+      if (!Array.isArray(data)) {
+        dropdown.innerHTML = "<option>Error</option>";
+        Swal.fire('Error', 'Failed to load hostel blocks.', 'error');
+        return;
+      }
+
+      dropdown.innerHTML = "<option value=''>Select Block</option>";
+
+      data.forEach(b => {
+        let opt = document.createElement("option");
+        opt.value = b.block_name;
+        opt.textContent = b.block_name;
+        dropdown.appendChild(opt);
+      });
+    })
+    .catch(err => {
+      console.error("loadBlocks error:", err);
+      document.getElementById("block").innerHTML = "<option>Error</option>";
+      Swal.fire('Error', 'Unable to load blocks. Please try again.', 'error');
+    });
+}
+
+/* ================= ROOMS ================= */
+function loadRooms(){
+  const block = document.getElementById("block").value;
+  const date = document.getElementById("date").value;
+
+  if(!block || !date){
+    Swal.fire('Missing Data', 'Please select Block and Date first.', 'info');
+    return;
+  }
+
+  selectedRoom = null;
+  attendanceData = [];
+  alreadyMarked = [];
+  document.getElementById("student-section").innerHTML = `
+    <div class="info-state">Select a room to start marking attendance.</div>
+  `;
+
+  fetch(`/get-rooms/${encodeURIComponent(block)}?role=${encodeURIComponent(role)}`)
+    .then(res => res.json())
+    .then(data => {
+      let container = document.getElementById("rooms");
+      container.innerHTML = "";
+
+      if (!Array.isArray(data) || data.length === 0) {
+        container.innerHTML = "<span style='font-size:0.9rem;color:#64748b;'>No rooms found for this block.</span>";
+        Swal.fire('No Rooms', 'No rooms found for the selected block.', 'info');
+        return;
+      }
+
+      data.forEach(r => {
+        let div = document.createElement("div");
+        div.className = "room-box";
+        div.innerText = r.room_number;
+        div.onclick = () => {
+          document.querySelectorAll(".room-box").forEach(rb => rb.classList.remove("active"));
+          div.classList.add("active");
+          loadStudents(block, r.room_number, date);
+        };
+        container.appendChild(div);
+      });
+    })
+    .catch(err => {
+      console.error("loadRooms error:", err);
+      document.getElementById("rooms").innerHTML = "<span style='font-size:0.9rem;color:#64748b;'>Error loading rooms.</span>";
+      Swal.fire('Error', 'Unable to load rooms. Please try again.', 'error');
+    });
+}
+
+/* ================= STUDENTS ================= */
+function loadStudents(block, room, date){
+  selectedRoom = room;
+  attendanceData = [];
+  alreadyMarked = [];
+
+  const section = document.getElementById("student-section");
+  section.innerHTML = `
+    <div class="info-state">Loading students for Room ${room}...</div>
+  `;
+
+  // fetch already marked students
+  fetch(`/get-attendance/${encodeURIComponent(block)}/${encodeURIComponent(room)}/${encodeURIComponent(date)}`)
+    .then(res => res.json())
+    .then(existing => {
+      alreadyMarked = Array.isArray(existing) ? existing.map(e => e.student_name) : [];
+
+      return fetch(`/get-students/${encodeURIComponent(block)}/${encodeURIComponent(room)}?role=${encodeURIComponent(role)}`);
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (!Array.isArray(data) || data.length === 0) {
+        section.innerHTML = `
+          <div class="info-state">No students found in this room.</div>
+        `;
+        Swal.fire('No Students', `No students found in Room ${room}.`, 'info');
+        return;
+      }
+
+      section.innerHTML = "";
+
+      // Build base attendanceData for all NOT yet submitted students
+      data.forEach(stu => {
+        console.log("Student:", stu);
+        if (!alreadyMarked.includes(stu.name)) {
+          attendanceData.push({
+            userId: stu.userId,
+            name: stu.name,
+            attendance: null
+          });
+        }
+      });
+      console.log("Initial attendanceData:", attendanceData);
+
+      data.forEach(stu => {
+        const row = document.createElement("div");
+        row.className = "student-row";
+
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "student-name";
+        nameDiv.textContent = stu.name;
+
+        const btnWrap = document.createElement("div");
+        btnWrap.className = "att-btns";
+
+        const present = document.createElement("button");
+        present.className = "present-btn";
+
+        const absent = document.createElement("button");
+        absent.className = "absent-btn";
+
+        const isMarked = alreadyMarked.includes(stu.name);
+
+        if (isMarked) {
+          // For students already in DB for this date+room:
+          // disable buttons and show "Submitted" label
+          present.classList.add("disabled");
+          absent.classList.add("disabled");
+
+          const submitted = document.createElement("span");
+          submitted.className = "submitted-badge";
+          submitted.textContent = "Submitted";
+          btnWrap.appendChild(submitted);
+        } else {
+          const id = stu.userId;
+
+          present.addEventListener("click", () => {
+            present.classList.add("selected");
+            absent.classList.remove("selected");
+            updateAttendance(id, "Present");
+          });
+
+          absent.addEventListener("click", () => {
+            absent.classList.add("selected");
+            present.classList.remove("selected");
+            updateAttendance(id, "Absent");
+          });
+
+          btnWrap.appendChild(present);
+          btnWrap.appendChild(absent);
+        }
+
+        row.appendChild(nameDiv);
+        row.appendChild(btnWrap);
+
+        section.appendChild(row);
+      });
+    })
+    .catch(err => {
+      console.error("loadStudents error:", err);
+      section.innerHTML = `
+        <div class="info-state">Error loading students. Please try again.</div>
+      `;
+      Swal.fire('Error', 'Unable to load students. Please try again.', 'error');
+    });
+}
+
+/* ================= UPDATE (in-place) ================= */
+function updateAttendance(id, status){
+  for (let i = 0; i < attendanceData.length; i++) {
+    if (attendanceData[i].userId === id) {
+      attendanceData[i].attendance = status;
+      break;
+    }
+  }
+  console.log("Updated Attendance:", attendanceData);
+}
+
+/* ================= SUBMIT ================= */
+function submitAttendance(){
+  const date = document.getElementById("date").value;
+  const block = document.getElementById("block").value;
+
+  if(!selectedRoom){
+    Swal.fire('No Room Selected', 'Please select a room before saving attendance.', 'info');
+    return;
+  }
+
+  const filtered = attendanceData.filter(s => s.attendance !== null);
+
+  if(filtered.length === 0){
+    Swal.fire('No Entries', 'Mark at least one student before saving.', 'info');
+    return;
+  }
+
+  fetch("/submit-attendance", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      date,
+      block_name:block,
+      room_number:selectedRoom,
+      students:filtered
+    })
+  })
+  .then(res=>res.json())
+  .then(()=>{
+    Swal.fire('Saved', 'Attendance saved successfully.', 'success');
+    loadStudents(block, selectedRoom, date);
+  })
+  .catch(err => {
+    console.error("submitAttendance error:", err);
+    Swal.fire('Error', 'Failed to save attendance. Please try again.', 'error');
+  });
+}
+</script>
 </body>
 </html>

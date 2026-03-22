@@ -2,265 +2,1093 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>Hostel Admission | Hostel Warden Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hostel Admission Form</title>
+<link rel="icon" href="crrengglogo.png" type="image/png" />
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.min.css"
+/>
 
 <style>
-/* ================= Global ================= */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+:root {
+  --primary-color: #0b2e59;
+  --secondary-color: #2c6e91;
+  --accent-color: #f7a048;
+  --background-dark: #f0f2f5;
+  --background-light: #ffffff;
+  --text-dark: #111827;
+  --text-light: #f4f4f4;
+  --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  --border-radius-lg: 16px;
+  --border-radius-md: 10px;
+  --success-color: #22c55e;
+  --danger-color: #ef4444;
+}
+
+/* Reset / Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #eef2f7;
+  background-color: var(--background-dark);
 }
 
-/* ================= Top bar ================= */
-.topbar {
-    background: #0b1c3c;
-    color: white;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-}
-.menu-btn {
-    font-size: 22px;
-    cursor: pointer;
-    margin-right: 15px;
+body.no-scroll {
+  overflow: hidden;
 }
 
-/* ================= Sidebar ================= */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Layout */
+.container-root {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
 .sidebar {
-    position: fixed;
-    top: 0;
-    left: -220px;
-    width: 220px;
-    height: 100%;
-    background: #0b1c3c;
-    color: white;
-    padding-top: 60px;
-    transition: 0.3s;
-    z-index: 1000;
-}
-.sidebar a {
-    display: block;
-    padding: 15px;
-    color: white;
-    text-decoration: none;
-    font-size: 16px;
-}
-.sidebar a:hover {
-    background: #1a3a60;
+  width: 280px;
+  background-color: var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  padding: 30px 20px;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease-in-out;
+  z-index: 1000;
+  overflow-y: auto;
 }
 
-/* ================= Content ================= */
-.content {
-    padding: 30px;
+.photo-container {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 20px;
 }
 
-/* ================= Form ================= */
-.container {
-    width: 80%;
-    margin: auto;
-    background: #fff;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px #ccc;
+.home-icon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: var(--background-light);
+  color: var(--primary-color);
+  border-radius: 50%;
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, background-color 0.3s ease;
 }
 
-h2 {
-    text-align: center;
-    color: #ffffff;
+.home-icon:hover {
+  transform: scale(1.1);
+  background-color: var(--accent-color);
+  color: var(--text-light);
 }
 
-h1 {
-    text-align: center;
-    color: #040404;
+.sidebar-photo {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  border: 4px solid var(--accent-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-label {
-    font-weight: bold;
+.sidebar h2 {
+  margin: 40px 20px 10px 20px;
+  color: var(--text-light);
+  font-size: 1.1rem;
+  font-weight: bold;
 }
 
-input, textarea, select {
-    width: 100%;
-    padding: 8px;
-    margin: 8px 0 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+.sidebar h3 {
+  margin: 0 20px 20px 20px;
+  color: #cfe4ff;
+  font-size: 0.92rem;
+  font-weight: 500;
 }
 
+.menu {
+  list-style: none;
+  padding: 0;
+  flex-grow: 1;
+}
+
+.menu li {
+  list-style: none;
+  margin-bottom: 12px;
+}
+
+.menu li a {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 1rem;
+  color: var(--text-light);
+  padding: 15px 20px;
+  border-radius: var(--border-radius-md);
+  transition: all 0.3s ease;
+}
+
+.menu li a:hover,
+.menu li.active a {
+  background-color: rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  transform: translateX(5px);
+  box-shadow: var(--card-shadow);
+}
+
+.menu li a i {
+  font-size: 1.2rem;
+  width: 25px;
+  text-align: center;
+  color: var(--text-light);
+  transition: color 0.3s ease;
+}
+
+.logout {
+  background-color: var(--accent-color);
+  color: var(--text-light);
+  border: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  width: 70%;
+  margin: 20px auto 10px;
+  transition: background 0.3s ease, transform 0.2s ease;
+  display: block;
+  text-align: center;
+}
+
+.logout:hover {
+  background-color: #d3853b;
+  transform: scale(1.05);
+}
+
+/* Main Section */
+.main-section {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--background-dark);
+  padding: 40px 30px;
+  margin-left: 280px;
+  transition: margin-left 0.3s ease-in-out;
+  min-height: 100vh;
+}
+
+/* Card */
+.details-card {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+  width: 100%;
+  max-width: 1150px;
+  padding: 26px 26px 24px;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.details-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+}
+
+.details-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Toggle buttons (New vs Renewal) */
+.admission-toggle {
+  display:flex;
+  justify-content:flex-start;
+  gap:8px;
+  margin-bottom:16px;
+}
+
+.toggle-btn {
+  padding:7px 16px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  background:#f9fafb;
+  font-size:0.9rem;
+  font-weight:600;
+  color:#374151;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.toggle-btn i {
+  font-size:0.85rem;
+}
+
+.toggle-btn.active {
+  background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));
+  color:#f9fafb;
+  border-color:transparent;
+  box-shadow:0 4px 14px rgba(11,46,89,0.5);
+}
+
+/* Header under toggle */
+.details-header {
+  margin-bottom: 14px;
+}
+
+.details-header h1 {
+  text-align: left;
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.details-header p {
+  text-align: left;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+/* Form fields */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+  gap: 14px 18px;
+  margin-top: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.form-group small {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #f9fafb;
+}
+
+.form-group textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 1px rgba(44,110,145,0.35);
+  background: #ffffff;
+}
+
+/* Section labels */
+.section-title {
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 8px;
+}
+
+/* Medical */
 .medical-box {
-    display: none;
-    padding: 15px;
-    background: #f8f8f8;
-    border-left: 4px solid #007bff;
+  display: none;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border-left: 4px solid var(--secondary-color);
+  margin-top: 8px;
 }
 
-button {
-    width: 100%;
-    padding: 15px;
-    background: #007bff;
-    border: none;
-    color: #fff;
-    font-size: 16px;
-    border-radius: 5px;
-    cursor: pointer;
+/* Declaration */
+.declaration-block {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  font-size: 0.88rem;
+}
+
+.declaration-block h3 {
+  text-align: center;
+  margin-bottom: 8px;
+  color: var(--primary-color);
+}
+
+.declaration-block label {
+  display: block;
+  margin-top: 6px;
+}
+
+/* Buttons */
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(11,46,89,0.5);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  padding:8px 14px;
+  border-radius:999px;
+  border:none;
+  background:linear-gradient(135deg,var(--secondary-color),#1f2937);
+  color:#fff;
+  font-size:0.88rem;
+  cursor:pointer;
+  box-shadow:0 3px 10px rgba(15,23,42,0.3);
+}
+.btn-secondary:hover {
+  transform:translateY(-1px);
+}
+
+/* Renewal section */
+.renewal-card {
+  margin-top: 8px;
+  padding-top: 4px;
+}
+
+.renewal-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.renewal-header h2 {
+  font-size:1.15rem;
+  color:var(--primary-color);
+}
+
+.renewal-controls {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.renewal-controls select {
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid #d1d5db;
+  font-size:0.9rem;
+  background:#f9fafb;
+}
+
+#renewalList > .renew-item {
+  background:#0b1c3c;
+  color:white;
+  padding:10px 12px;
+  margin:8px 0;
+  border-radius:10px;
+  font-size:0.86rem;
+  box-shadow:0 3px 10px rgba(15,23,42,0.5);
+}
+
+/* Mobile Toggle & Overlay */
+.mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background-color: var(--secondary-color);
+  color: var(--text-light);
+  font-size: 24px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 999;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .main-section {
+    padding: 30px 20px;
+  }
+  .details-card {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 992px) {
+  .mobile-toggle {
+    display: flex;
+  }
+  .sidebar {
+    transform: translateX(-100%);
+    width: 250px;
+    max-width: 85vw;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-section {
+    margin-left: 0;
+    padding: 20px;
+  }
+  .details-card {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 576px) {
+  .sidebar {
+    width: 220px;
+    max-width: 75vw;
+    padding: 20px 15px;
+  }
+  .sidebar h2 {
+    font-size: 1rem;
+  }
+  .menu li a {
+    font-size: 0.9rem;
+    padding: 12px 15px;
+  }
+  .details-card {
+    padding: 14px;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .mobile-toggle {
+    width: 40px;
+    height: 40px;
+  }
+  .sidebar {
+    width: 200px;
+  }
+  .details-card {
+    padding: 12px;
+  }
 }
 </style>
-
-<script>
-function toggleMedical() {
-    const value = document.getElementById("has_medical_issue").value;
-    document.getElementById("medical_fields").style.display =
-        value === "yes" ? "block" : "none";
-}
-
-function toggleSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    sidebar.style.left = sidebar.style.left === "0px" ? "-220px" : "0px";
-}
-</script>
-
 </head>
 <body>
 
-<!-- ================= TOP BAR ================= -->
-<div class="topbar">
-    <span class="menu-btn" onclick="toggleSidebar()">☰</span>
-    <h2 style="margin:0;">Warden Dashboard</h2>
-</div>
+<!-- Mobile overlay -->
+<div class="overlay" onclick="toggleMobileMenu()"></div>
 
-<!-- ================= SIDEBAR ================= -->
-<div class="sidebar" id="sidebar">
-    <a href="hostel_attendence.html">Attendance</a>
-    <a href="approve_outpass.html">Outpass</a>
-    <a href="hostel-admissions.html">Admission</a>
-</div>
-
-<!-- ================= CONTENT ================= -->
-<div class="content">
-
-<div class="container">
-<h1>Hostel Admission Form</h1>
-
-<form method="POST" action="/submit-hostel-form">
-
-    <!-- LOGIN / USER ACCOUNT DETAILS -->
-    <label>User ID</label>
-    <input type="text" name="user_id" required>
-
-    <label>Password</label>
-    <input type="password" name="password" required>
-
-    <hr>
-
-    <!-- ACADEMIC DETAILS -->
-    <label>Academic Year</label>
-    <input type="text" name="academic_year" required>
-
-    <label>Application Number</label>
-    <input type="text" name="application_number" required>
-
-    <label>Name</label>
-    <input type="text" name="name" required>
-
-    <label>Father / Guardian Name</label>
-    <input type="text" name="father_name" required>
-
-    <label>Father Occupation</label>
-    <input type="text" name="father_occupation">
-
-    <label>Mother Name</label>
-    <input type="text" name="mother_name">
-
-    <label>Mother Occupation</label>
-    <input type="text" name="mother_occupation">
-
-    <label>Date of Birth</label>
-    <input type="date" name="date_of_birth" required>
-
-    <label>Blood Group</label>
-    <input type="text" name="blood_group">
-
-    <label>Permanent Address</label>
-    <textarea name="permanent_address" required></textarea>
-
-    <label>Present Address</label>
-    <textarea name="present_address" required></textarea>
-
-    <label>Course & Year</label>
-    <input type="text" name="course_year">
-
-    <label>Branch</label>
-    <input type="text" name="branch">
-
-    <label>Roll Number</label>
-    <input type="text" name="roll_number">
-
-    <!-- CONTACT DETAILS -->
-    <label>Emergency Contact - Father</label>
-    <input type="text" name="emergency_contact_father">
-
-    <label>Emergency Contact - Mother</label>
-    <input type="text" name="emergency_contact_mother">
-
-    <label>Emergency Contact - Guardian</label>
-    <input type="text" name="emergency_contact_guardian">
-
-    <label>Contact Number of Inmate</label>
-    <input type="text" name="inmate_contact">
-
-    <label>Local Guardian Contact</label>
-    <input type="text" name="local_guardian_contact">
-
-    <!-- HOSTEL DETAILS -->
-    <label>Block Name</label>
-    <select name="block_name" required>
-        <option value="">-- Select Block --</option>
-        <option>Old Block</option>
-        <option>New Block</option>
-        <option>Amenities Block</option>
-        <option>Gym Block</option>
-        <option>D Block</option>
-        <option>E Block</option>
-    </select>
-
-    <label>Room Number</label>
-    <input type="text" name="room_number" required>
-
-    <!-- MEDICAL DETAILS -->
-    <label>Do you have any recurring medical problems?</label>
-    <select name="has_medical_issue" id="has_medical_issue" onchange="toggleMedical()">
-        <option value="no">No</option>
-        <option value="yes">Yes</option>
-    </select>
-
-    <div id="medical_fields" class="medical-box">
-        <label>Specify the drug used</label>
-        <textarea name="medical_drug_used"></textarea>
-
-        <label>Drugs you are allergic to</label>
-        <textarea name="drug_allergy"></textarea>
+<div class="container-root">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="photo-container">
+      <a href="index.html" class="home-icon" title="Hostel Home">
+        <i class="fas fa-home"></i>
+      </a>
+      <img id="sidebarPhoto" class="sidebar-photo" style="display: none;" />
     </div>
 
-    <!-- DECLARATIONS -->
-    <h3 style="text-align:center;">DECLARATION</h3>
+    <h2>Warden ID: <span id="wardenId">Loading...</span></h2>
+    <h3 id="hostelTypeLabel">Hostel Admissions</h3>
 
-    <label>
-        <input type="checkbox" name="student_declaration" required>
-        I declare the above information is true.
-    </label><br><br>
+    <ul class="menu">
+      <li>
+        <a href="hostel_warden_dashboard.html">
+          <i class="fas fa-chart-line"></i> Backlog Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="Hostel_attendance.html">
+          <i class="fas fa-user-check"></i> Hostel Attendance
+        </a>
+      </li>
+      <li class="active">
+        <a href="hostel_admissions.html">
+          <i class="fas fa-id-card-alt"></i> Hostel Admissions
+        </a>
+      </li>
+      <li>
+        <a href="hostel_approve_outpass.html">
+          <i class="fas fa-door-open"></i> Approve Outpass
+        </a>
+      </li>
+      <li>
+        <button class="logout" onclick="confirmLogout()">Logout</button>
+      </li>
+    </ul>
+  </div>
 
-    <label>
-        <input type="checkbox" name="parent_declaration" required>
-        I take responsibility for my ward.
-    </label><br><br>
+  <!-- MAIN -->
+  <div class="main-section">
+    <div class="details-card">
+      <!-- New vs Renewal toggle -->
+      <div class="admission-toggle">
+        <button type="button" class="toggle-btn active" id="btnNew" onclick="showNewAdmission()">
+          <i class="fas fa-user-plus"></i> New Admission
+        </button>
+        <button type="button" class="toggle-btn" id="btnRenewal" onclick="showRenewalAdmission()">
+          <i class="fas fa-sync-alt"></i> Renewal Admission
+        </button>
+      </div>
 
-    <button type="submit">Submit Application</button>
+      <div class="details-header">
+        <h1 id="sectionTitle">Hostel Admission Form</h1>
+        <p id="sectionSubtitle">
+          Fill in the details carefully. User ID will be auto‑generated if left empty.
+        </p>
+      </div>
 
-</form>
+      <!-- NEW ADMISSION FORM -->
+      <div id="newAdmissionSection">
+        <form method="POST" action="/submit-hostel-form">
+          <!-- User ID & Academic -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label>User ID</label>
+              <input type="text" name="user_id" placeholder="Leave empty for auto generation">
+              <small>User ID will be auto generated if empty</small>
+            </div>
+
+            <div class="form-group">
+              <label>Academic Year</label>
+              <input type="text" name="academic_year" required>
+            </div>
+
+            <div class="form-group">
+              <label>Application Number</label>
+              <input type="text" name="application_number" required>
+            </div>
+
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" name="name" required>
+            </div>
+
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+              <label>Father / Guardian Name</label>
+              <input type="text" name="father_name" required>
+            </div>
+
+            <div class="form-group">
+              <label>Father Occupation</label>
+              <input type="text" name="father_occupation">
+            </div>
+
+            <div class="form-group">
+              <label>Mother Name</label>
+              <input type="text" name="mother_name">
+            </div>
+
+            <div class="form-group">
+              <label>Mother Occupation</label>
+              <input type="text" name="mother_occupation">
+            </div>
+
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" name="date_of_birth" required>
+            </div>
+
+            <div class="form-group">
+              <label>Blood Group</label>
+              <input type="text" name="blood_group">
+            </div>
+          </div>
+
+          <div class="section-title">Address Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Permanent Address</label>
+              <textarea name="permanent_address" required></textarea>
+            </div>
+            <div class="form-group">
+              <label>Present Address</label>
+              <textarea name="present_address" required></textarea>
+            </div>
+          </div>
+
+          <div class="section-title">Academic Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Year of Study</label>
+              <select name="course_year" required>
+                <option value="">-- Select Year --</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Branch</label>
+              <input type="text" name="branch">
+            </div>
+            <div class="form-group">
+              <label>Roll Number</label>
+              <input type="text" name="roll_number" placeholder="Optional">
+            </div>
+          </div>
+
+          <div class="section-title">Contact Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Emergency Contact - Father</label>
+              <input type="text" name="emergency_contact_father">
+            </div>
+            <div class="form-group">
+              <label>Emergency Contact - Mother</label>
+              <input type="text" name="emergency_contact_mother">
+            </div>
+            <div class="form-group">
+              <label>Emergency Contact - Guardian</label>
+              <input type="text" name="emergency_contact_guardian">
+            </div>
+            <div class="form-group">
+              <label>Contact Number of Inmate</label>
+              <input type="text" name="inmate_contact">
+            </div>
+            <div class="form-group">
+              <label>Local Guardian Contact</label>
+              <input type="text" name="local_guardian_contact">
+            </div>
+          </div>
+
+          <div class="section-title">Hostel Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Block Name</label>
+              <select name="block_name" id="block_name" required>
+                <option value="">-- Select Block --</option>
+                <!-- options will be populated dynamically based on user_id -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Room Number</label>
+              <input type="number" name="room_number" required>
+            </div>
+          </div>
+
+          <div class="section-title">Medical Information</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Do you have any medical issues?</label>
+              <select name="has_medical_issue" id="has_medical_issue" onchange="toggleMedical()">
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="medical_fields" class="medical-box">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Drug Used</label>
+                <textarea name="medical_drug_used"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Drug Allergy</label>
+                <textarea name="drug_allergy"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="declaration-block">
+            <h3>Declaration</h3>
+            <label>
+              <input type="checkbox" name="student_declaration" required>
+              I declare that the above information given by me is true to the best of my knowledge.
+            </label>
+            <label>
+              <input type="checkbox" name="parent_declaration" required>
+              I, the parent/guardian, take full responsibility for my ward and agree to hostel rules.
+            </label>
+          </div>
+
+          <button type="submit" class="btn-primary">
+            Submit Application
+          </button>
+        </form>
+      </div>
+
+      <!-- RENEWAL SECTION (hidden by default) -->
+      <div id="renewalSection" style="display:none;">
+        <div class="renewal-card">
+          <div class="renewal-header">
+            <h2>Hostel Renewal</h2>
+            <span style="font-size:0.8rem;color:#6b7280;">
+              Renew existing hostelers to the next academic year.
+            </span>
+          </div>
+
+          <div class="renewal-controls">
+            <label for="renewYear" style="font-size:0.9rem;font-weight:600;color:#111827;">Select Current Year</label>
+            <select id="renewYear">
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+            <button type="button" class="btn-secondary" onclick="loadRenewalStudents()">
+              Load Students
+            </button>
+          </div>
+
+          <div id="renewalList" style="margin-top:10px;"></div>
+
+          <button type="button" class="btn-primary" style="margin-top:14px;max-width:260px;" onclick="renewStudents()">
+            Renew Selected
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
+<!-- Mobile FAB Toggle -->
+<div class="mobile-toggle" onclick="toggleMobileMenu()">
+  <i class="fas fa-bars"></i>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.all.min.js"></script>
+<script>
+let role = ""; // dynamic from user_id
+
+/* ===== MEDICAL TOGGLE ===== */
+function toggleMedical() {
+  const value = document.getElementById("has_medical_issue").value;
+  document.getElementById("medical_fields").style.display =
+    value === "yes" ? "block" : "none";
+}
+
+/* ===== NEW vs RENEWAL TOGGLE ===== */
+function showNewAdmission() {
+  document.getElementById("newAdmissionSection").style.display = "block";
+  document.getElementById("renewalSection").style.display = "none";
+  document.getElementById("btnNew").classList.add("active");
+  document.getElementById("btnRenewal").classList.remove("active");
+  document.getElementById("sectionTitle").textContent = "Hostel Admission Form";
+  document.getElementById("sectionSubtitle").textContent =
+    "Fill in the details carefully. User ID will be auto‑generated if left empty.";
+}
+
+function showRenewalAdmission() {
+  document.getElementById("newAdmissionSection").style.display = "none";
+  document.getElementById("renewalSection").style.display = "block";
+  document.getElementById("btnRenewal").classList.add("active");
+  document.getElementById("btnNew").classList.remove("active");
+  document.getElementById("sectionTitle").textContent = "Hostel Renewal";
+  document.getElementById("sectionSubtitle").textContent =
+    "Select the current year and renew eligible hostel students.";
+}
+
+/* ===== MOBILE SIDEBAR ===== */
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.overlay');
+  const body = document.body;
+
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('active');
+  body.classList.toggle('no-scroll');
+}
+
+/* ===== LOGOUT WITH SWEETALERT ===== */
+function confirmLogout() {
+  Swal.fire({
+    title: 'Logout?',
+    text: 'You will be logged out of this warden session.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#0b2e59',
+    cancelButtonColor: '#f7a048',
+    confirmButtonText: 'Yes, logout'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      logout();
+    }
+  });
+}
+
+function logout() {
+  fetch("/logout", { method: "GET", credentials: "include" })
+    .then(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      if ("caches" in window) {
+        caches.keys().then(names => names.forEach(name => caches.delete(name)));
+      }
+      window.location.replace("login.html");
+    })
+    .catch(() => {
+      window.location.replace("login.html");
+    });
+}
+
+/* ===== POPULATE BLOCKS DYNAMICALLY ===== */
+function populateBlocks() {
+  const select = document.getElementById("block_name");
+  if (!select) return;
+
+  select.innerHTML = '<option value="">-- Select Block --</option>';
+
+  if (role.startsWith("BH")) {
+    const blocks = [
+      "Old Block",
+      "New Block",
+      "Amenities Block",
+      "Gym Block",
+      "D Block",
+      "E Block"
+    ];
+    blocks.forEach(b => {
+      const opt = document.createElement("option");
+      opt.value = b;
+      opt.textContent = b;
+      select.appendChild(opt);
+    });
+  } else if (role.startsWith("GH")) {
+    const blocks = [
+      "Engg Hostel",
+      "Degree Hostel",
+      "Pharmacy Hostel"
+    ];
+    blocks.forEach(b => {
+      const opt = document.createElement("option");
+      opt.value = b;
+      opt.textContent = b;
+      select.appendChild(opt);
+    });
+  } else {
+    // fallback: show all
+    const blocks = [
+      "Old Block",
+      "New Block",
+      "Amenities Block",
+      "Gym Block",
+      "D Block",
+      "E Block",
+      "Engg Hostel",
+      "Degree Hostel",
+      "Pharmacy Hostel"
+    ];
+    blocks.forEach(b => {
+      const opt = document.createElement("option");
+      opt.value = b;
+      opt.textContent = b;
+      select.appendChild(opt);
+    });
+  }
+}
+
+/* ===== INITIALIZE ===== */
+document.addEventListener("DOMContentLoaded", () => {
+  const wardenId = localStorage.getItem("user_id") || "";
+  const wardenLabel = document.getElementById("wardenId");
+  const hostelTypeLabel = document.getElementById("hostelTypeLabel");
+  const sidebarPhoto = document.getElementById("sidebarPhoto");
+
+  if (!wardenId) {
+    Swal.fire({
+      title: 'Access Denied',
+      text: 'Please login as Hostel Warden to access admissions.',
+      icon: 'error',
+      confirmButtonText: 'Go to Login',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      confirmButtonColor: '#0b2e59'
+    }).then(() => {
+      window.location.href = "login.html";
+    });
+    return;
+  }
+
+  role = wardenId;
+
+  wardenLabel.textContent = wardenId;
+  if (wardenId.startsWith("BH")) {
+    hostelTypeLabel.textContent = "Boys Hostel Admissions";
+  } else if (wardenId.startsWith("GH")) {
+    hostelTypeLabel.textContent = "Girls Hostel Admissions";
+  } else {
+    hostelTypeLabel.textContent = "Hostel Admissions";
+  }
+
+  // avatar
+  sidebarPhoto.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(wardenId)}&background=0b2e59&color=fff&rounded=true&bold=true&size=128`;
+  sidebarPhoto.style.display = "block";
+
+  // default view: New Admission
+  showNewAdmission();
+
+  // populate block list according to role
+  populateBlocks();
+});
+
+/* ===== AUTO-CLOSE SIDEBAR LINKS (MOBILE) ===== */
+document.querySelectorAll(".menu li a").forEach(link => {
+  link.addEventListener("click", () => {
+    if (window.innerWidth <= 992) {
+      toggleMobileMenu();
+    }
+  });
+});
+
+/* ===== RENEWAL LOGIC ===== */
+async function loadRenewalStudents() {
+  const year = document.getElementById("renewYear").value;
+
+  try {
+    const res = await fetch(`/get-students-for-renewal?year=${year}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      Swal.fire('Error', data.message || 'Server Error', 'error');
+      return;
+    }
+
+    let html = "";
+
+    if (data.length === 0) {
+      html = "<p style='font-size:0.9rem;color:#6b7280;'>No students found for this year.</p>";
+    } else {
+      data.forEach(s => {
+        html += `
+          <div class="renew-item">
+            <label style="display:flex;gap:10px;align-items:flex-start;">
+              <input type="checkbox" value="${s.id}">
+              <span>
+                <b>${s.name}</b><br>
+                Reg No: ${s.roll_number || "N/A"}<br>
+                Block: ${s.block_name} | Room: ${s.room_number}<br>
+                Year: ${s.course_year}
+              </span>
+            </label>
+          </div>`;
+      });
+    }
+
+    document.getElementById("renewalList").innerHTML = html;
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error', 'Unable to load students. Please try again.', 'error');
+  }
+}
+
+async function renewStudents() {
+  const ids = [...document.querySelectorAll("#renewalList input:checked")]
+    .map(cb => cb.value);
+
+  if (ids.length === 0) {
+    Swal.fire('Select Students', 'Please select at least one student to renew.', 'info');
+    return;
+  }
+
+  try {
+    const res = await fetch("/renew-students", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ ids })
+    });
+
+    const data = await res.json();
+    Swal.fire('Renewal', data.message || 'Renewal completed', 'success');
+    // Optionally reload list: loadRenewalStudents();
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error', 'Renewal failed. Please try again.', 'error');
+  }
+}
+</script>
 </body>
 </html>

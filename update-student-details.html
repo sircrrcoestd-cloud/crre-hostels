@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Update Student Details</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    padding: 20px;
+}
+.container {
+    max-width: 900px;
+    margin: auto;
+}
+select, button {
+    padding: 10px;
+    margin: 10px 0;
+}
+.card {
+    background: #1e293b;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 10px;
+}
+input {
+    padding: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Update Student Details</h2>
+
+<!-- BLOCK -->
+<label>Select Block</label>
+<select id="block" onchange="loadRooms()">
+    <option value="">-- Select Block --</option>
+</select>
+
+<!-- ROOM -->
+<label>Select Room</label>
+<select id="room">
+    <option value="">-- Select Room --</option>
+</select>
+
+<button onclick="loadStudents()">Load Students</button>
+
+<div id="students"></div>
+
+</div>
+
+<script>
+
+// Load blocks on page load
+window.onload = loadBlocks;
+
+async function loadBlocks() {
+    const res = await fetch("/get-blocks");
+    const data = await res.json();
+
+    const blockSelect = document.getElementById("block");
+
+    data.forEach(b => {
+        blockSelect.innerHTML += `
+            <option value="${b.block_name}">
+                ${b.block_name}
+            </option>
+        `;
+    });
+}
+
+// Load rooms when block selected
+async function loadRooms() {
+    const block = document.getElementById("block").value;
+
+    const res = await fetch(`/get-rooms?block=${block}`);
+    const data = await res.json();
+
+    const roomSelect = document.getElementById("room");
+    roomSelect.innerHTML = `<option value="">-- Select Room --</option>`;
+
+    data.forEach(r => {
+        roomSelect.innerHTML += `
+            <option value="${r.room_number}">
+                ${r.room_number}
+            </option>
+        `;
+    });
+}
+
+// Load students
+async function loadStudents() {
+    const block = document.getElementById("block").value;
+    const room = document.getElementById("room").value;
+
+    const res = await fetch(`/get-students?block=${block}&room=${room}`);
+    const data = await res.json();
+
+    const container = document.getElementById("students");
+    container.innerHTML = "";
+
+    data.forEach(stu => {
+        container.innerHTML += `
+            <div class="card">
+                <p><b>Name:</b> ${stu.name}</p>
+                <p><b>User ID:</b> ${stu.user_id}</p>
+
+                <input type="text"
+                       value="${stu.roll_number || ''}"
+                       id="reg_${stu.id}"
+                       placeholder="Enter Reg No">
+
+                <button onclick="updateReg(${stu.id})">
+                    Update
+                </button>
+            </div>
+        `;
+    });
+}
+
+// Update Reg No
+async function updateReg(id) {
+    const reg = document.getElementById(`reg_${id}`).value;
+
+    const res = await fetch("/update-reg-no", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, roll_number: reg })
+    });
+
+    const data = await res.json();
+    alert(data.message);
+}
+
+</script>
+
+</body>
+</html>
