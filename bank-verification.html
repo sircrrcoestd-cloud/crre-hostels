@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hostel Bank Verification | Sir C.R. Reddy College of Engineering</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="crrengglogo.png" />
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.min.css"
+  />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+    :root {
+      --primary-color: #0b2e59;
+      --secondary-color: #2c6e91;
+      --accent-color: #f7a048;
+      --background-dark: #f0f2f5;
+      --background-light: #ffffff;
+      --text-dark: #333333;
+      --text-light: #f4f4f4;
+      --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      --border-radius-lg: 16px;
+      --border-radius-md: 10px;
+      --success-color: #16a34a;
+      --danger-color: #b91c1c;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--background-dark);
+    }
+
+    body.no-scroll {
+      overflow: hidden;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar (same theme as admin/warden) */
+    .sidebar {
+      width: 280px;
+      background-color: var(--primary-color);
+      display: flex;
+      flex-direction: column;
+      padding: 30px 20px;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease-in-out;
+      z-index: 1000;
+      overflow-y: auto;
+      color: var(--text-light);
+    }
+
+    .photo-container {
+      display: flex;
+      justify-content: center;
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .home-icon {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background-color: var(--background-light);
+      color: var(--primary-color);
+      border-radius: 50%;
+      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+
+    .home-icon:hover {
+      transform: scale(1.1);
+      background-color: var(--accent-color);
+      color: var(--text-light);
+    }
+
+    .sidebar-photo {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      border: 4px solid var(--accent-color);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .sidebar h2 {
+      margin: 40px 20px 10px 20px;
+      color: var(--text-light);
+      font-size: 1.05rem;
+      font-weight: bold;
+    }
+
+    .sidebar h3 {
+      margin: 0 20px 20px 20px;
+      color: #cfe4ff;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .menu {
+      list-style: none;
+      padding: 0;
+      flex-grow: 1;
+    }
+
+    .menu li {
+      list-style: none;
+      margin-bottom: 12px;
+    }
+
+    .menu li a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 0.98rem;
+      color: var(--text-light);
+      padding: 14px 18px;
+      border-radius: var(--border-radius-md);
+      transition: all 0.3s ease;
+    }
+
+    .menu li a:hover,
+    .menu li.active a {
+      background-color: rgba(255, 255, 255, 0.1);
+      font-weight: 500;
+      transform: translateX(5px);
+      box-shadow: var(--card-shadow);
+    }
+
+    .menu li a i {
+      font-size: 1.1rem;
+      width: 22px;
+      text-align: center;
+      color: var(--text-light);
+      transition: color 0.3s ease;
+    }
+
+    .logout {
+      background-color: var(--accent-color);
+      color: var(--text-light);
+      border: none;
+      padding: 12px 25px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: bold;
+      width: 70%;
+      margin: 20px auto 10px;
+      transition: background 0.3s ease, transform 0.2s ease;
+      display:block;
+      text-align:center;
+    }
+
+    .logout:hover {
+      background-color: #d3853b;
+      transform: scale(1.05);
+    }
+
+    /* Main Section */
+    .main-section {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: var(--background-dark);
+      padding: 40px 30px;
+      margin-left: 280px;
+      transition: margin-left 0.3s ease-in-out;
+      min-height: 100vh;
+    }
+
+    .details-card {
+      background-color: var(--background-light);
+      color: var(--text-dark);
+      width: 100%;
+      max-width: 1180px;
+      padding: 26px 24px 22px;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--card-shadow);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .details-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    }
+
+    .details-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .details-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:18px;
+    }
+
+    .details-header-text h1 {
+      font-size:1.5rem;
+      color:var(--primary-color);
+      margin-bottom:4px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .details-header-text p {
+      font-size:0.9rem;
+      color:#6b7280;
+    }
+
+    .topbar-badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(79, 70, 229, 0.12);
+      color: #4f46e5;
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .stat-card {
+      background: #f9fafb;
+      border-radius: var(--border-radius-md);
+      border: 1px solid #e5e7eb;
+      padding: 16px 14px;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+    }
+
+    .stat-label {
+      color: #6b7280;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* Panel / filters / table */
+    .panel {
+      background: #ffffff;
+      border-radius: var(--border-radius-lg);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 4px 12px rgba(15,23,42,0.06);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 18px 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .panel-header h2 {
+      font-size:1.05rem;
+      margin-bottom:4px;
+      color:#111827;
+    }
+
+    .panel-header p {
+      color:#6b7280;
+      font-size:0.88rem;
+    }
+
+    .filter-bar {
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      padding: 14px 18px;
+      background:#f9fafb;
+      border-bottom:1px solid #e5e7eb;
+    }
+
+    .filter-group {
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      min-width: 220px;
+      flex:1;
+    }
+
+    .filter-group label {
+      font-size:0.8rem;
+      color:#6b7280;
+      font-weight:600;
+    }
+
+    .filter-group select,
+    .filter-group input {
+      padding:9px 11px;
+      border-radius:12px;
+      border:1px solid #d1d5db;
+      font-size:0.9rem;
+      background:#ffffff;
+      outline:none;
+    }
+
+    .filter-group select:focus,
+    .filter-group input:focus {
+      border-color:#6366f1;
+      box-shadow:0 0 0 2px rgba(99,102,241,0.18);
+    }
+
+    .table-wrap {
+      width:100%;
+      overflow:auto;
+    }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      min-width:980px;
+    }
+
+    thead th {
+      position:sticky;
+      top:0;
+      z-index:5;
+      background:#e0e7ff;
+      color:#312e81;
+      font-size:0.82rem;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+    }
+
+    th, td {
+      padding:11px 10px;
+      text-align:left;
+      border-bottom:1px solid #e5e7eb;
+      vertical-align:top;
+      font-size:0.9rem;
+    }
+
+    tbody tr:hover {
+      background:#f9fafb;
+    }
+
+    .description-cell {
+      max-width:280px;
+      white-space:normal;
+      line-height:1.5;
+      color:#334155;
+    }
+
+    .amount {
+      font-weight:600;
+      white-space:nowrap;
+    }
+
+    .status-badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:5px 9px;
+      border-radius:999px;
+      font-size:0.76rem;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .status-badge.verified {
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .status-badge.not_verified {
+      background:#fee2e2;
+      color:#b91c1c;
+    }
+
+    .empty-state {
+      display:none;
+      padding:24px 16px;
+      text-align:center;
+      color:#6b7280;
+      font-size:0.9rem;
+    }
+
+    /* Mobile cards */
+    .mobile-cards {
+      display:none;
+      padding:12px;
+      gap:12px;
+      flex-direction:column;
+    }
+
+    .record-card {
+      border:1px solid #e5e7eb;
+      border-radius:18px;
+      padding:14px;
+      background:#ffffff;
+      box-shadow:0 4px 16px rgba(15,23,42,0.06);
+    }
+
+    .record-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .record-ref {
+      font-weight:700;
+      font-size:0.95rem;
+      color:#0f172a;
+      word-break:break-word;
+    }
+
+    .record-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px 14px;
+    }
+
+    .record-item span {
+      display:block;
+    }
+
+    .record-item .label {
+      font-size:0.76rem;
+      color:#6b7280;
+      margin-bottom:3px;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+    }
+
+    .record-item .value {
+      font-size:0.9rem;
+      color:#111827;
+      line-height:1.4;
+      word-break:break-word;
+    }
+
+    .record-item.full {
+      grid-column:1 / -1;
+    }
+
+    /* Mobile Toggle & Overlay */
+    .mobile-toggle {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: var(--secondary-color);
+      color: var(--text-light);
+      font-size: 24px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      z-index: 1001;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(3px);
+      z-index: 999;
+      transition: opacity 0.3s ease-in-out;
+      opacity: 0;
+    }
+
+    .overlay.active {
+      display: block;
+      opacity: 1;
+    }
+
+    @media (max-width: 1200px) {
+      .main-section {
+        padding: 30px 20px;
+      }
+      .details-card {
+        padding: 22px 18px 18px;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+      }
+    }
+
+    @media (max-width: 992px) {
+      .mobile-toggle {
+        display: flex;
+      }
+      .sidebar {
+        transform: translateX(-100%);
+        width: 250px;
+        max-width: 85vw;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-section {
+        margin-left: 0;
+        padding: 24px 18px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .table-wrap {
+        display:none;
+      }
+      .mobile-cards {
+        display:flex;
+      }
+      .filter-group {
+        min-width:100%;
+      }
+      .details-header {
+        flex-direction:column;
+        align-items:flex-start;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .sidebar {
+        width: 220px;
+        max-width: 75vw;
+        padding: 20px 15px;
+      }
+      .sidebar h2 {
+        font-size: 1rem;
+      }
+      .menu li a {
+        font-size: 0.9rem;
+        padding: 12px 15px;
+      }
+      .details-card {
+        padding: 18px 14px 16px;
+      }
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      .record-grid {
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .mobile-toggle {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+      }
+      .sidebar {
+        width: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Mobile overlay -->
+  <div class="overlay" onclick="toggleMobileMenu()"></div>
+
+  <div class="container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="photo-container">
+        <a href="index.html" class="home-icon" title="Hostel Home">
+          <i class="fas fa-home"></i>
+        </a>
+        <img id="sidebarPhoto" class="sidebar-photo" style="display:none;" />
+      </div>
+
+      <h2>Admin ID: <span id="adminId">Loading...</span></h2>
+      <h3 id="adminLabel">Bank Verification Panel</h3>
+
+      <ul class="menu">
+        <li>
+          <a href="hostel_admin_dashboard.html">
+            <i class="fas fa-chart-line"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="bank-upload.html">
+            <i class="fas fa-file-upload"></i> Upload Bank Statement
+          </a>
+        </li>
+        <li class="active">
+          <a href="bank-verification.html">
+            <i class="fas fa-clipboard-check"></i> Verifications
+          </a>
+        </li>
+        <li>
+          <button class="logout" onclick="confirmLogout()">Logout</button>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-section">
+      <div class="details-card">
+        <div class="details-header">
+          <div class="details-header-text">
+            <h1><i class="fas fa-receipt"></i> Bank Verification Status</h1>
+            <p>View all bank statement records with verified and not verified status. Balance fields are hidden by design.</p>
+          </div>
+          <div class="topbar-badge" id="hostelBadge">Hostel Records Panel</div>
+        </div>
+
+        <!-- Stats -->
+        <section class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Records</div>
+            <div class="stat-value" id="totalCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Verified</div>
+            <div class="stat-value" id="verifiedCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Not Verified</div>
+            <div class="stat-value" id="notVerifiedCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Filtered Records</div>
+            <div class="stat-value" id="filteredCount">0</div>
+          </div>
+        </section>
+
+        <!-- Panel -->
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Verification Records</h2>
+            <p>Showing bank statement details from hostel bank records. Use filters to refine results.</p>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label for="statusFilter">Filter by status</label>
+              <select id="statusFilter">
+                <option value="all">Show All</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="NOT_VERIFIED">Not Verified</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="searchInput">Search</label>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search by ref no, description, branch code..."
+              />
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Txn Date</th>
+                  <th>Value Date</th>
+                  <th>Description</th>
+                  <th>Ref No</th>
+                  <th>Branch Code</th>
+                  <th>Debit</th>
+                  <th>Credit</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="mobile-cards" id="mobileCards"></div>
+          <div class="empty-state" id="emptyState">No records found for the selected filter.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile FAB Toggle -->
+  <div class="mobile-toggle" onclick="toggleMobileMenu()">
+    <i class="fas fa-bars"></i>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.20/dist/sweetalert2.all.min.js"></script>
+  <script>
+    const BASE_URL = window.location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://crrehostel.onrender.com";
+
+    let allRecords = [];
+    let filteredRecords = [];
+    let hostelType = "";
+
+    function toggleMobileMenu() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.querySelector('.overlay');
+      const body = document.body;
+
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+      body.classList.toggle('no-scroll');
+    }
+
+    function confirmLogout() {
+      Swal.fire({
+        title: 'Logout?',
+        text: 'You will be logged out of this admin session.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#0b2e59',
+        cancelButtonColor: '#f7a048',
+        confirmButtonText: 'Yes, logout'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          logout();
+        }
+      });
+    }
+
+    function logout() {
+      fetch("/logout", { method: "GET", credentials: "include" })
+        .then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          if ("caches" in window) {
+            caches.keys().then(names => names.forEach(name => caches.delete(name)));
+          }
+          window.location.replace("login.html");
+        })
+        .catch(() => {
+          window.location.replace("login.html");
+        });
+    }
+
+    async function loadAdminInfo() {
+      try {
+        const res = await fetch(`${BASE_URL}/admin-dashboard-data`);
+        const data = await res.json();
+
+        hostelType = data.hostelType;
+        const text =
+          hostelType === "BOYS_HOSTEL"
+            ? "👦 Boys Hostel Records"
+            : "👧 Girls Hostel Records";
+
+        document.getElementById("hostelBadge").innerText = text;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadVerificationRecords(status = "all") {
+      try {
+        const res = await fetch(`${BASE_URL}/get-bank-verifications?status=${status}`);
+        const data = await res.json();
+
+        allRecords = data.records || [];
+        filteredRecords = [...allRecords];
+
+        updateStats();
+        renderTable();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function formatAmount(value) {
+      const amount = Number(value || 0);
+      return amount.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function getStatusBadge(status) {
+      const isVerified = status === "VERIFIED";
+      return `
+        <span class="status-badge ${isVerified ? "verified" : "not_verified"}">
+          ${isVerified ? "Verified" : "Not Verified"}
+        </span>
+      `;
+    }
+
+    function updateStats() {
+      const total = allRecords.length;
+      const verified = allRecords.filter(r => r.verification_status === "VERIFIED").length;
+      const notVerified = allRecords.filter(r => r.verification_status === "NOT_VERIFIED").length;
+
+      document.getElementById("totalCount").innerText = total;
+      document.getElementById("verifiedCount").innerText = verified;
+      document.getElementById("notVerifiedCount").innerText = notVerified;
+      document.getElementById("filteredCount").innerText = filteredRecords.length;
+    }
+
+    function renderTable() {
+      const tableBody = document.getElementById("tableBody");
+      const mobileCards = document.getElementById("mobileCards");
+      const emptyState = document.getElementById("emptyState");
+
+      tableBody.innerHTML = "";
+      mobileCards.innerHTML = "";
+
+      if (filteredRecords.length === 0) {
+        emptyState.style.display = "block";
+        return;
+      }
+
+      emptyState.style.display = "none";
+
+      filteredRecords.forEach(row => {
+        // Table row
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.id}</td>
+          <td>${row.txn_date || "-"}</td>
+          <td>${row.value_date || "-"}</td>
+          <td class="description-cell">${row.description || "-"}</td>
+          <td>${row.ref_no || "-"}</td>
+          <td>${row.branch_code || "-"}</td>
+          <td class="amount">₹ ${formatAmount(row.debit)}</td>
+          <td class="amount">₹ ${formatAmount(row.credit)}</td>
+          <td>${getStatusBadge(row.verification_status)}</td>
+        `;
+        tableBody.appendChild(tr);
+
+        // Mobile card
+        const card = document.createElement("div");
+        card.className = "record-card";
+        card.innerHTML = `
+          <div class="record-top">
+            <div class="record-ref">${row.ref_no || "-"}</div>
+            ${getStatusBadge(row.verification_status)}
+          </div>
+
+          <div class="record-grid">
+            <div class="record-item">
+              <span class="label">Txn Date</span>
+              <span class="value">${row.txn_date || "-"}</span>
+            </div>
+
+            <div class="record-item">
+              <span class="label">Value Date</span>
+              <span class="value">${row.value_date || "-"}</span>
+            </div>
+
+            <div class="record-item">
+              <span class="label">Debit</span>
+              <span class="value">₹ ${formatAmount(row.debit)}</span>
+            </div>
+
+            <div class="record-item">
+              <span class="label">Credit</span>
+              <span class="value">₹ ${formatAmount(row.credit)}</span>
+            </div>
+
+            <div class="record-item full">
+              <span class="label">Description</span>
+              <span class="value">${row.description || "-"}</span>
+            </div>
+          </div>
+        `;
+        mobileCards.appendChild(card);
+      });
+    }
+
+    function applySearchFilter() {
+      const searchValue = document.getElementById("searchInput").value.toLowerCase();
+
+      filteredRecords = allRecords.filter(row => {
+        return (
+          row.ref_no?.toLowerCase().includes(searchValue) ||
+          row.description?.toLowerCase().includes(searchValue) ||
+          row.branch_code?.toLowerCase().includes(searchValue)
+        );
+      });
+
+      updateStats();
+      renderTable();
+    }
+
+    document.getElementById("statusFilter").addEventListener("change", (e) => {
+      loadVerificationRecords(e.target.value);
+    });
+
+    document.getElementById("searchInput").addEventListener("input", applySearchFilter);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const adminId = localStorage.getItem("user_id") || "ADMIN";
+      const adminSpan = document.getElementById("adminId");
+      const adminLabel = document.getElementById("adminLabel");
+      const sidebarPhoto = document.getElementById("sidebarPhoto");
+
+      adminSpan.textContent = adminId;
+      adminLabel.textContent = "Bank Verification Panel";
+
+      sidebarPhoto.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(adminId)}&background=0b2e59&color=fff&rounded=true&bold=true&size=128`;
+      sidebarPhoto.style.display = "block";
+
+      loadAdminInfo();
+      loadVerificationRecords();
+    });
+  </script>
+</body>
+</html>

@@ -55,6 +55,17 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+function getHostelType(req) {
+    const userId = req.session?.user?.userId;
+
+    if (!userId || typeof userId !== "string") {
+        throw new Error("Invalid session");
+    }
+
+    return userId.startsWith("BH")
+        ? "BOYS_HOSTEL"
+        : "GIRLS_HOSTEL";
+}
 // ==========================
 // HELPER FUNCTION (ADD HERE)
 // ==========================
@@ -1326,47 +1337,255 @@ app.get('/api/pendingTransactions', async (req, res) => {
 
 app.post("/upload-bank-statement", upload.single("file"), async (req, res) => {
     try {
+
+        // ✅ 1. FILE CHECK
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
         }
 
+        // ✅ 2. SAFE SESSION ACCESS (MATCH YOUR LOGIN STRUCTURE)
+        const user = req.session?.user;
+
+        if (!user || !user.user_id || typeof user.user_id !== "string") {
+            return res.status(401).json({
+                error: "Unauthorized - Invalid session"
+            });
+        }
+
+        const userId = user.user_id;   // ✅ IMPORTANT FIX
+
+        // ✅ 3. DETERMINE HOSTEL TYPE SAFELY
+        let residenceType;
+
+        if (userId.startsWith("BH")) {
+            residenceType = "BOYS_HOSTEL";
+        } else if (userId.startsWith("GH")) {
+            residenceType = "GIRLS_HOSTEL";
+        } else {
+            return res.status(400).json({
+                error: "Invalid userId format"
+            });
+        }
+
+        console.log("User:", userId);
+        console.log("Residence:", residenceType);
+
         const filePath = path.resolve(req.file.path);
 
+        // ✅ 4. RUN PYTHON
         exec(`python hostel_bank_extract.py "${filePath}"`, async (error, stdout, stderr) => {
+
+            console.log("PYTHON STDOUT:", stdout);
+            console.log("PYTHON STDERR:", stderr);
 
             if (error) {
                 console.error("Python Error:", error);
-                console.error("STDERR:", stderr);
-                return res.status(500).json({ error: "Processing failed" });
+                return res.status(500).json({
+                    error: "Python processing failed",
+                    details: stderr
+                });
             }
 
-            console.log("Python Output:", stdout);
+            try {
 
-            // 🔥 AUTO VERIFY (FIXED)
-            const [result] = await db.query(`
-                UPDATE hostel_management_system.student_transactions st
-                JOIN hostel_management_system.hostel_bank_statements bs
-                ON TRIM(bs.ref_no) LIKE CONCAT('%', TRIM(st.transaction_id), '%')
-                AND ABS(st.amount - bs.credit) <= 5
-                SET 
-                    st.status = 'VERIFIED',
-                    st.verified_at = NOW()
-                WHERE st.status = 'PENDING'
-            `);
+                // ✅ 5. UPDATE residence_type
+                await db.query(`
+                    UPDATE hostel_bank_statements
+                    SET residence_type = ?
+                    WHERE residence_type IS NULL OR residence_type = ''
+                `, [residenceType]);
 
-            console.log("Verified Rows:", result.affectedRows);
+                // ✅ 6. AUTO VERIFY
+                const [result] = await db.query(`
+                    UPDATE hostel_bank_statements bs
+                    JOIN student_transactions st
+                    ON TRIM(bs.ref_no) LIKE CONCAT('%', TRIM(st.transaction_id), '%')
+                    AND ABS(st.amount - bs.credit) <= 5
+                    SET 
+                        bs.verification_status = 'VERIFIED',
+                        st.status = 'VERIFIED',
+                        st.verified_at = NOW()
+                    WHERE st.status = 'PENDING'
+                    AND bs.residence_type = ?
+                `, [residenceType]);
 
-            res.json({
-                success: true,
-                message: `Excel processed. ${result.affectedRows} transactions verified`
-            });
+                console.log("Verified Rows:", result.affectedRows);
+
+                // ✅ 7. SUCCESS RESPONSE
+                res.json({
+                    success: true,
+                    message: `Excel processed. ${result.affectedRows} transactions verified`,
+                    residenceType
+                });
+
+            } catch (dbErr) {
+                console.error("DB ERROR:", dbErr);
+                return res.status(500).json({
+                    error: "Database error",
+                    details: dbErr.message
+                });
+            }
+
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Server error" });
+        console.error("SERVER ERROR:", err);
+        res.status(500).json({
+            error: "Server error",
+            details: err.message
+        });
     }
 });
+
+app.get("/get-bank-verifications", async (req, res) => {
+    try {
+        // ✅ SAFE SESSION CHECK
+        const user = req.session?.user;
+
+        if (!user || !user.user_id || typeof user.user_id !== "string") {
+            return res.status(401).json({
+                error: "Unauthorized - Invalid session"
+            });
+        }
+
+        const userId = user.user_id; // ✅ FIXED
+
+        // ✅ DETERMINE HOSTEL
+        let residenceType;
+
+        if (userId.startsWith("BH")) {
+            residenceType = "BOYS_HOSTEL";
+        } else if (userId.startsWith("GH")) {
+            residenceType = "GIRLS_HOSTEL";
+        } else {
+            return res.status(400).json({
+                error: "Invalid userId format"
+            });
+        }
+
+        // ✅ FILTER FROM QUERY
+        const status = req.query.status;
+
+        let query = `
+            SELECT 
+                id,
+                txn_date,
+                value_date,
+                description,
+                ref_no,
+                branch_code,
+                debit,
+                credit,
+                verification_status
+            FROM hostel_bank_statements
+            WHERE residence_type = ?
+        `;
+
+        let params = [residenceType];
+
+        // ✅ STATUS FILTER
+        if (status && status !== "all") {
+            query += " AND verification_status = ?";
+            params.push(status);
+        }
+
+        query += " ORDER BY id DESC";
+
+        const [rows] = await db.query(query, params);
+
+        res.json({
+            success: true,
+            residenceType,
+            count: rows.length,
+            records: rows
+        });
+
+    } catch (err) {
+        console.error("GET BANK ERROR:", err);
+        res.status(500).json({
+            error: "Server error",
+            details: err.message
+        });
+    }
+});
+
+app.get("/get-bank-verification-stats", async (req, res) => {
+    try {
+        const user = req.session?.user;
+
+        if (!user || !user.user_id || typeof user.user_id !== "string") {
+            return res.status(401).json({
+                error: "Unauthorized - Invalid session"
+            });
+        }
+
+        const userId = user.user_id; // ✅ FIXED
+
+        let residenceType;
+
+        if (userId.startsWith("BH")) {
+            residenceType = "BOYS_HOSTEL";
+        } else if (userId.startsWith("GH")) {
+            residenceType = "GIRLS_HOSTEL";
+        } else {
+            return res.status(400).json({
+                error: "Invalid userId format"
+            });
+        }
+
+        const [rows] = await db.query(`
+            SELECT 
+                COUNT(*) AS total,
+                SUM(verification_status = 'VERIFIED') AS verified,
+                SUM(verification_status = 'NOT_VERIFIED') AS not_verified
+            FROM hostel_bank_statements
+            WHERE residence_type = ?
+        `, [residenceType]);
+
+        res.json({
+            success: true,
+            stats: rows[0]
+        });
+
+    } catch (err) {
+        console.error("STATS ERROR:", err);
+        res.status(500).json({
+            error: "Server error",
+            details: err.message
+        });
+    }
+});
+
+app.get("/admin-dashboard-data", (req, res) => {
+    try {
+        const user = req.session?.user;
+
+        if (!user || !user.user_id) {
+            return res.status(401).json({
+                error: "Unauthorized"
+            });
+        }
+
+        const userId = user.user_id;
+
+        const hostelType = userId.startsWith("BH")
+            ? "BOYS_HOSTEL"
+            : "GIRLS_HOSTEL";
+
+        res.json({
+            userId,
+            hostelType
+        });
+
+    } catch (err) {
+        console.error("ADMIN DATA ERROR:", err);
+        res.status(500).json({
+            error: "Server error"
+        });
+    }
+});
+
+
 // routes/hostel.js
 app.get("/api/hostel/students", async (req, res) => {
     try {

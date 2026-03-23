@@ -4,7 +4,9 @@ import mysql.connector
 import os
 from dotenv import load_dotenv
 
+# =====================================
 # ✅ LOAD ENV
+# =====================================
 load_dotenv()
 
 DB_HOST = os.getenv("DB_HOST")
@@ -14,7 +16,9 @@ DB_NAME = os.getenv("DB_NAME")
 
 file_path = sys.argv[1]
 
+# =====================================
 # ✅ DB CONNECTION
+# =====================================
 conn = mysql.connector.connect(
     host=DB_HOST,
     user=DB_USER,
@@ -57,25 +61,22 @@ if header_row_index is None:
 df.columns = df.iloc[header_row_index]
 df = df[(header_row_index + 1):]
 
-# Clean column names
 df.columns = [str(col).strip() for col in df.columns]
 
-# =====================================
-# 🔥 STEP 4: DEBUG (optional)
-# =====================================
 print("Detected Columns:", df.columns.tolist())
 
 # =====================================
-# 🔥 STEP 5: PROCESS ROWS
+# 🔥 STEP 4: PROCESS ROWS
 # =====================================
-for index, row in df.iterrows():
+inserted_count = 0
 
+for index, row in df.iterrows():
     try:
         debit = clean_amount(row.get("Debit"))
         credit = clean_amount(row.get("Credit"))
         balance = clean_amount(row.get("Balance"))
 
-        # ❌ skip debit rows
+        # ❌ Skip debit entries
         if debit > 0:
             continue
 
@@ -88,7 +89,6 @@ for index, row in df.iterrows():
         ref_no = str(row.get("Ref No./Cheque No.", "")).strip()
         branch_code = str(row.get("Branch Code", "")).strip()
 
-        # Handle NaN values
         if ref_no == "nan":
             ref_no = None
 
@@ -96,12 +96,12 @@ for index, row in df.iterrows():
             branch_code = None
 
         # =====================================
-        # 💾 INSERT INTO DB
+        # 💾 INSERT WITH DEFAULT STATUS
         # =====================================
         cursor.execute("""
             INSERT INTO hostel_bank_statements
-            (txn_date, value_date, description, ref_no, branch_code, debit, credit, balance)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            (txn_date, value_date, description, ref_no, branch_code, debit, credit, balance, verification_status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'NOT_VERIFIED')
         """, (
             txn_date,
             value_date,
@@ -113,6 +113,8 @@ for index, row in df.iterrows():
             balance
         ))
 
+        inserted_count += 1
+
     except Exception as e:
         print(f"Error processing row {index}: {e}")
 
@@ -123,4 +125,4 @@ conn.commit()
 cursor.close()
 conn.close()
 
-print("BANK STATEMENT (EXCEL) PROCESSED SUCCESSFULLY")
+print(f"SUCCESS: {inserted_count} records inserted")
