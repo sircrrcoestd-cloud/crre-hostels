@@ -17,15 +17,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 const publicPath = path.resolve(__dirname);
-
-app.use(express.static(publicPath));
-
+// FORCE root to serve index.html
 app.get("/", (req, res) => {
-    res.sendFile(path.join(publicPath, "index.html"));
+    res.sendFile(path.join(publicPath, "index.html"), (err) => {
+        if (err) {
+            console.error("Error sending index:", err);
+            res.status(500).send("Error loading page");
+        }
+    });
 });
-app.get("/login.html", (req, res) => {
-    res.sendFile(path.join(publicPath, "login.html"));
-});
+// Serve static files
+app.use(express.static(publicPath));
 
 const session = require("express-session");
 
