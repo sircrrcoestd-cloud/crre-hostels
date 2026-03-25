@@ -15,7 +15,9 @@ app.use(express.static(__dirname));
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
 const session = require("express-session");
 
 app.use(session({
