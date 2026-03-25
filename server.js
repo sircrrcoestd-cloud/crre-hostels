@@ -23,6 +23,10 @@ app.use(express.static(publicPath));
 app.get("/", (req, res) => {
     res.sendFile(path.join(publicPath, "index.html"));
 });
+app.get("/login.html", (req, res) => {
+    res.sendFile(path.join(publicPath, "login.html"));
+});
+
 const session = require("express-session");
 
 app.use(session({
@@ -31,8 +35,6 @@ app.use(session({
     saveUninitialized: true
 }));
 
-// Serve frontend HTML
-app.use(express.static(__dirname));
 
 // Database connection
 require('dotenv').config();
@@ -49,7 +51,6 @@ const db = mysql.createPool({
     queueLimit: 0
 });
 
-module.exports = db;
 
 // Configure the email transporter
 const transporter = nodemailer.createTransport({
