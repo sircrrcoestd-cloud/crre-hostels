@@ -279,7 +279,7 @@ app.get("/get-blocks", async (req, res) => {
 
         query += " ORDER BY block_name ASC";
 
-        const [rows] = await db.query(query, values);
+        const [rows] = await pool.query(query, values);
 
         res.json(rows);
 
@@ -298,7 +298,7 @@ app.get("/get-rooms/:block", async (req, res) => {
         const hostelType =
             role === "BHWARDEN" ? "BOYS_HOSTEL" : "GIRLS_HOSTEL";
 
-        const [rows] = await db.query(`
+        const [rows] = await pool.query(`
             SELECT DISTINCT room_number
             FROM hostel_management_system.hostel_admissions
             WHERE block_name = ?
@@ -323,7 +323,7 @@ app.get("/get-students/:block/:room", async (req, res) => {
         const hostelType =
             role === "BHWARDEN" ? "BOYS_HOSTEL" : "GIRLS_HOSTEL";
 
-        const [rows] = await db.query(`
+        const [rows] = await pool.query(`
             SELECT user_id, name
             FROM hostel_management_system.hostel_admissions
             WHERE block_name = ?
@@ -380,7 +380,7 @@ app.get("/get-attendance/:block/:room/:date", async (req, res) => {
     const { block, room, date } = req.params;
 
     try {
-        const [rows] = await db.query(
+        const [rows] = await pool.query(
             `SELECT user_id, student_name, attendance
              FROM hostel_attendance
              WHERE block_name = ? AND room_number = ? AND date = ?`,
@@ -1160,27 +1160,27 @@ app.get("/api/warden/complaints", (req, res) => {
     return res.status(400).json({ success: false, error: "Invalid Warden ID" });
   }
 
-  const sql = `
-    SELECT 
-      hc.id,
-      hc.user_id,
-      hc.student_name,
-      hc.category,
-      hc.location,
-      hc.description,
-      hc.status,
-      hc.created_at,
-      hc.is_viewed,
-      ha.block_name,
-      ha.room_number
-    FROM hostel_complaints hc
-    INNER JOIN hostel_admissions ha 
-      ON TRIM(hc.user_id) = TRIM(ha.user_id)
-    WHERE ha.residence_type = ?
-    ORDER BY hc.created_at DESC
-  `;
+const sql = `
+  SELECT 
+    hc.id,
+    hc.user_id,
+    hc.student_name,
+    hc.category,
+    hc.location,
+    hc.description,
+    hc.status,
+    hc.created_at,
+    hc.is_viewed,
+    ha.block_name,
+    ha.room_number
+  FROM hostel_complaints hc
+  LEFT JOIN hostel_admissions ha 
+    ON TRIM(hc.user_id) = TRIM(ha.user_id)
+  WHERE ha.residence_type = ?
+  ORDER BY hc.created_at DESC
+`;
 
-  db.query(sql, [residenceType], (err, rows) => {
+  pool.query(sql, [residenceType], (err, rows) => {
 
     if (err) {
       console.error(err);
@@ -1242,7 +1242,7 @@ app.get('/api/getStudentInfo/:user_id', async (req, res) => {
     try {
         const { user_id } = req.params;
 
-        const [rows] = await db.query(
+        const [rows] = await pool.query(
             `SELECT user_id, course_year, academic_year, name 
              FROM hostel_management_system.hostel_admissions 
              WHERE user_id = ?`,
@@ -1267,7 +1267,7 @@ app.get('/api/getFees/:user_id', async (req, res) => {
         const { user_id } = req.params;
 
         // 🔹 get all fee structures
-        const [fees] = await db.query(
+        const [fees] = await pool.query(
             `SELECT year, room_rent, mess_deposit_1, mess_deposit_2, academic_year
              FROM hostel_management_system.hostel_fee_structure
              WHERE user_id = ?
@@ -1280,7 +1280,7 @@ app.get('/api/getFees/:user_id', async (req, res) => {
         }
 
         // 🔹 get verified payments
-        const [payments] = await db.query(
+        const [payments] = await pool.query(
             `SELECT fee_type, SUM(amount) as paid
              FROM hostel_management_system.student_transactions
              WHERE user_id = ? AND status = 'VERIFIED'
@@ -1338,7 +1338,7 @@ app.post('/api/addTransaction', async (req, res) => {
         }
 
         // ✅ GET ACADEMIC YEAR (FINAL)
-        const [admissionData] = await db.query(
+        const [admissionData] = await pool.query(
             `SELECT academic_year 
              FROM hostel_management_system.hostel_admissions 
              WHERE user_id = ?`,
@@ -1352,7 +1352,7 @@ app.post('/api/addTransaction', async (req, res) => {
         const academic_year = admissionData[0].academic_year;
 
         // 🔥 MATCH WITH BANK
-        const [bankMatch] = await db.query(
+        const [bankMatch] = await pool.query(
             `SELECT * FROM hostel_management_system.hostel_bank_statements
              WHERE ref_no LIKE CONCAT('%', ?, '%')
              AND credit = ?`,
@@ -1368,7 +1368,7 @@ app.post('/api/addTransaction', async (req, res) => {
         }
 
         // ✅ INSERT WITH ACADEMIC YEAR
-        await db.query(
+        await pool.query(
             `INSERT INTO hostel_management_system.student_transactions
             (user_id, academic_year, fee_type, amount, transaction_id, status, verified_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1401,7 +1401,7 @@ app.post('/api/verifyTransaction', async (req, res) => {
             return res.status(403).json({ error: "Unauthorized" });
         }
 
-        const [result] = await db.query(
+        const [result] = await pool.query(
             `UPDATE hostel_management_system.student_transactions
              SET status = 'VERIFIED', verified_at = NOW()
              WHERE transaction_id = ? AND status = 'PENDING'`,
@@ -1423,7 +1423,7 @@ app.post('/api/verifyTransaction', async (req, res) => {
 
 app.get('/api/pendingTransactions', async (req, res) => {
     try {
-        const [rows] = await db.query(
+        const [rows] = await pool.query(
             `SELECT * FROM hostel_management_system.student_transactions
              WHERE status = 'PENDING'
              ORDER BY created_at DESC`
@@ -1492,14 +1492,14 @@ app.post("/upload-bank-statement", upload.single("file"), async (req, res) => {
             try {
 
                 // ✅ 5. UPDATE residence_type
-                await db.query(`
+                await pool.query(`
                     UPDATE hostel_bank_statements
                     SET residence_type = ?
                     WHERE residence_type IS NULL OR residence_type = ''
                 `, [residenceType]);
 
                 // ✅ 6. AUTO VERIFY
-                const [result] = await db.query(`
+                const [result] = await pool.query(`
                     UPDATE hostel_bank_statements bs
                     JOIN student_transactions st
                     ON TRIM(bs.ref_no) LIKE CONCAT('%', TRIM(st.transaction_id), '%')
@@ -1594,7 +1594,7 @@ app.get("/get-bank-verifications", async (req, res) => {
 
         query += " ORDER BY id DESC";
 
-        const [rows] = await db.query(query, params);
+        const [rows] = await pool.query(query, params);
 
         res.json({
             success: true,
@@ -1636,7 +1636,7 @@ app.get("/get-bank-verification-stats", async (req, res) => {
             });
         }
 
-        const [rows] = await db.query(`
+        const [rows] = await pool.query(`
             SELECT 
                 COUNT(*) AS total,
                 SUM(verification_status = 'VERIFIED') AS verified,
