@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hostel Complaints</title>
+
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f4f6f9;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-left: 5px solid #ccc;
+}
+
+.card.pending { border-left-color: orange; }
+.card.progress { border-left-color: blue; }
+.card.resolved { border-left-color: green; }
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.student {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.meta {
+  font-size: 13px;
+  color: #555;
+}
+
+.desc {
+  margin: 10px 0;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+select {
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 5px;
+  color: white;
+  font-size: 12px;
+}
+
+.badge.pending { background: orange; }
+.badge.progress { background: blue; }
+.badge.resolved { background: green; }
+
+.new {
+  background: red;
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>🏨 Hostel Complaints</h2>
+  <div id="complaintsContainer"></div>
+</div>
+
+<script>
+const wardenId = localStorage.getItem("warden_id"); 
+// ⚠️ Make sure you set this at login
+
+async function loadComplaints() {
+  const res = await fetch(`/api/warden/complaints?warden_id=${wardenId}`);
+  const data = await res.json();
+
+  const container = document.getElementById("complaintsContainer");
+  container.innerHTML = "";
+
+  if (!data.complaints.length) {
+    container.innerHTML = "<p>No complaints found</p>";
+    return;
+  }
+
+  data.complaints.forEach(c => {
+
+    let statusClass = "";
+    let badgeClass = "";
+
+    if (c.status === "Pending") {
+      statusClass = "pending";
+      badgeClass = "pending";
+    }
+    if (c.status === "In Progress") {
+      statusClass = "progress";
+      badgeClass = "progress";
+    }
+    if (c.status === "Resolved") {
+      statusClass = "resolved";
+      badgeClass = "resolved";
+    }
+
+    const card = document.createElement("div");
+    card.className = `card ${statusClass}`;
+
+    card.innerHTML = `
+      <div class="header">
+        <div class="student">
+          ${c.student_name} (${c.user_id})
+          ${c.is_viewed == 0 ? '<span class="new">NEW</span>' : ''}
+        </div>
+        <div class="badge ${badgeClass}">${c.status}</div>
+      </div>
+
+      <div class="meta">
+        📍 ${c.location} | 🏢 ${c.block_name} - Room ${c.room_number} <br>
+        🔧 ${c.category} | 🕒 ${new Date(c.created_at).toLocaleString()}
+      </div>
+
+      <div class="desc">
+        ${c.description}
+      </div>
+
+      <div class="footer">
+        <select onchange="updateStatus(${c.id}, this.value)">
+          <option ${c.status==='Pending'?'selected':''}>Pending</option>
+          <option ${c.status==='In Progress'?'selected':''}>In Progress</option>
+          <option ${c.status==='Resolved'?'selected':''}>Resolved</option>
+        </select>
+
+        <button onclick="markViewed(${c.id})">Mark Viewed</button>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+// ✅ Update Status
+async function updateStatus(id, status) {
+  await fetch(`/api/warden/complaints/status/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status })
+  });
+
+  loadComplaints();
+}
+
+// ✅ Mark as Viewed
+async function markViewed(id) {
+  await fetch(`/api/warden/complaints/view/${id}`, {
+    method: "PUT"
+  });
+
+  loadComplaints();
+}
+
+// 🚀 Initial Load
+loadComplaints();
+</script>
+
+</body>
+</html>
