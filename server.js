@@ -22,13 +22,17 @@ const publicPath = path.resolve(__dirname);
 app.use(express.static(publicPath));
 
 const session = require("express-session");
-
+app.set("trust proxy", 1);
 app.use(session({
     secret: "hostel_secret_key",
     resave: false,
-    saveUninitialized: true
+    saveUninitialized: false,
+    cookie: {
+        secure: false,   // IMPORTANT (since nginx handles https)
+        httpOnly: true,
+        sameSite: "lax"
+    }
 }));
-
 
 // Database connection
 require('dotenv').config();
