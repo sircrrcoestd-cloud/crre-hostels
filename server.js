@@ -2037,5 +2037,11 @@ app.get("/", (req, res) => {
         }
     });
 });
+
+app.use((err, req, res, next) => {
+    console.error("GLOBAL ERROR:", err);
+    res.status(500).send("Something broke!");
+});
+
 // Start server
 app.listen(3000, () => console.log("Hostel Management Server running on port 3000"));
