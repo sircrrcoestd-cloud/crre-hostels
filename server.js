@@ -11,7 +11,7 @@ const multer = require("multer");
 const PDFDocument = require("pdfkit");const cors = require("cors");
 app.use(cors());
 const upload = multer({ dest: "uploads/" });
-
+app.use(express.static(__dirname));
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
