@@ -12,6 +12,9 @@ const PDFDocument = require("pdfkit");const cors = require("cors");
 app.use(cors());
 const upload = multer({ dest: "uploads/" });
 
+app.get("/test", (req, res) => {
+    res.send("TEST WORKING");
+});
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
