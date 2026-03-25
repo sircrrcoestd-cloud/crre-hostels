@@ -15,6 +15,8 @@ console.log("SERVER FILE STARTED");
 app.get("/test", (req, res) => {
     res.send("TEST WORKING");
 });
+
+console.log("ROUTES LOADED");
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
