@@ -1141,68 +1141,81 @@ app.post("/student/submit-complaint", async (req, res) => {
 });
 
 // GET complaints for logged-in warden
-app.get("/api/warden/complaints", async (req, res) => {
-  try {
-    const { warden_id } = req.query;
+app.get("/api/warden/complaints", (req, res) => {
 
-    console.log("👉 Warden ID:", warden_id);
+  const { warden_id } = req.query;
 
-    if (!warden_id) {
-      return res.status(400).json({ success: false, error: "Warden ID required" });
+  console.log("👉 Warden ID:", warden_id);
+
+  if (!warden_id) {
+    return res.status(400).json({
+      success: false,
+      error: "Warden ID required"
+    });
+  }
+
+  let residenceType;
+
+  if (warden_id.startsWith("BH")) {
+    residenceType = "BOYS_HOSTEL";
+  } 
+  else if (warden_id.startsWith("GH")) {
+    residenceType = "GIRLS_HOSTEL";
+  } 
+  else {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid Warden ID"
+    });
+  }
+
+  console.log("👉 Residence Type:", residenceType);
+
+  const sql = `
+    SELECT 
+      hc.id,
+      hc.user_id,
+      hc.student_name,
+      hc.category,
+      hc.location,
+      hc.description,
+      hc.status,
+      hc.created_at,
+      hc.is_viewed,
+      ha.block_name,
+      ha.room_number
+    FROM hostel_complaints hc
+    INNER JOIN hostel_admissions ha 
+      ON hc.user_id = ha.user_id
+    WHERE ha.residence_type = ?
+    ORDER BY hc.created_at DESC
+  `;
+
+  console.log("👉 Running query...");
+
+  db.query(sql, [residenceType], (err, rows) => {
+
+    if (err) {
+      console.error("❌ DB ERROR:", err);
+
+      return res.status(500).json({
+        success: false,
+        error: err.message
+      });
     }
 
-    let residenceType;
-
-    if (warden_id.startsWith("BH")) {
-      residenceType = "BOYS_HOSTEL";
-    } else if (warden_id.startsWith("GH")) {
-      residenceType = "GIRLS_HOSTEL";
-    } else {
-      return res.status(400).json({ success: false, error: "Invalid Warden ID" });
-    }
-
-    console.log("👉 Residence Type:", residenceType);
-
-    const sql = `
-      SELECT 
-        hc.id,
-        hc.user_id,
-        hc.student_name,
-        hc.category,
-        hc.location,
-        hc.description,
-        hc.status,
-        hc.created_at,
-        hc.is_viewed,
-        ha.block_name,
-        ha.room_number
-      FROM hostel_complaints hc
-      LEFT JOIN hostel_admissions ha 
-        ON hc.user_id = ha.user_id
-      WHERE ha.residence_type = ?
-      ORDER BY hc.created_at DESC
-    `;
-
-    console.log("👉 Running query...");
-
-    const [rows] = await db.promise().query(sql, [residenceType]);
-
-    console.log("✅ Rows:", rows.length);
+    console.log("✅ Rows fetched:", rows.length);
 
     res.json({
       success: true,
       complaints: rows
     });
 
-  } catch (err) {
-    console.error("❌ FULL ERROR:", err);
+  });
 
-    res.status(500).json({
-      success: false,
-      error: err.message   // 🔥 IMPORTANT
-    });
-  }
 });
+
+
 app.put("/api/warden/complaints/view/:id", async (req, res) => {
   try {
     const { id } = req.params;
