@@ -1142,23 +1142,69 @@ app.post("/student/submit-complaint", async (req, res) => {
 
 app.get("/api/warden/complaints", (req, res) => {
 
-  const sql = `SELECT * FROM hostel_complaints`;
+  const { warden_id } = req.query;
 
-  db.query(sql, (err, rows) => {
+  console.log("👉 Warden ID:", warden_id);
+
+  if (!warden_id) {
+    return res.status(400).json({
+      success: false,
+      error: "Warden ID required"
+    });
+  }
+
+  let residenceType;
+
+  if (warden_id.startsWith("BH")) {
+    residenceType = "BOYS_HOSTEL";
+  } else if (warden_id.startsWith("GH")) {
+    residenceType = "GIRLS_HOSTEL";
+  } else {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid Warden ID"
+    });
+  }
+
+  console.log("👉 Residence Type:", residenceType);
+
+  const sql = `
+    SELECT *
+    FROM hostel_complaints hc
+    WHERE TRIM(hc.user_id) IN (
+      SELECT TRIM(user_id)
+      FROM hostel_admissions
+      WHERE residence_type = ?
+    )
+    ORDER BY hc.created_at DESC
+  `;
+
+  console.log("👉 Running query...");
+
+  db.query(sql, [residenceType], (err, rows) => {
+
     if (err) {
-      console.error(err);
-      return res.status(500).json({ success: false });
+      console.error("❌ DB ERROR:", err);
+      return res.status(500).json({
+        success: false,
+        error: err.message
+      });
     }
 
-    console.log("🔥 ALL COMPLAINTS:", rows);
+    console.log("✅ Rows fetched:", rows.length);
+    console.log("📦 Data:", rows);
 
     res.json({
       success: true,
-      complaints: rows
+      complaints: rows || []
     });
+
   });
 
 });
+
+
+
 app.put("/api/warden/complaints/view/:id", async (req, res) => {
   try {
     const { id } = req.params;
