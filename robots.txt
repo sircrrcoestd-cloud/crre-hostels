@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hostels.sircrrcoestd.in/sitemap.xml
