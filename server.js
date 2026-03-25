@@ -542,7 +542,7 @@ app.post("/warden/approve-outpass/:id", async (req, res) => {
         const student = rows[0];
 
         // ✅ GENERATE QR (BUFFER)
-        const qrData = `http://localhost:3000/verify-outpass/${qrToken}`;
+        const qrData = `/verify-outpass/${qrToken}`;
         const qrBuffer = await QRCode.toBuffer(qrData);
 
         // ✅ SEND EMAIL WITH QR
@@ -566,7 +566,7 @@ app.post("/warden/approve-outpass/:id", async (req, res) => {
 
                 <p>
                     Or click to verify:
-                    <a href="http://localhost:3000/verify-outpass/${qrToken}">
+                    <a href="/verify-outpass/${qrToken}">
                         Verify Outpass
                     </a>
                 </p>
@@ -672,7 +672,7 @@ app.get("/outpass-qr/:token", async (req, res) => {
     try {
         const token = req.params.token;
 
-        const qrData = `http://localhost:3000/verify-outpass/${token}`;
+        const qrData = `/verify-outpass/${token}`;
 
         const qrBuffer = await QRCode.toBuffer(qrData);
 
@@ -2047,4 +2047,4 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 // Start server
-app.listen(3000, () => console.log("Hostel Management Server running on port 3000"));
+app.listen(3001, () => console.log("Hostel Management Server running on port 3001"));
