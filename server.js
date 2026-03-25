@@ -11,7 +11,7 @@ const multer = require("multer");
 const PDFDocument = require("pdfkit");const cors = require("cors");
 app.use(cors());
 const upload = multer({ dest: "uploads/" });
-
+console.log("SERVER FILE STARTED");
 app.get("/test", (req, res) => {
     res.send("TEST WORKING");
 });
