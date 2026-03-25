@@ -2035,20 +2035,14 @@ app.get("/get-students-by-year", async (req, res) => {
     }
 });
 
-// FORCE root to serve index.html
-app.get("/", (req, res) => {
-    res.sendFile(path.join(publicPath, "index.html"), (err) => {
-        if (err) {
-            console.error("Error sending index:", err);
-            res.status(500).send("Error loading page");
-        }
-    });
-});
 
 app.use((err, req, res, next) => {
     console.error("GLOBAL ERROR:", err);
     res.status(500).send("Something broke!");
 });
 
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
 // Start server
 app.listen(3000, () => console.log("Hostel Management Server running on port 3000"));
