@@ -279,7 +279,7 @@ app.get("/get-blocks", async (req, res) => {
 
         query += " ORDER BY block_name ASC";
 
-        const [rows] = await db.query(query, values);
+        const [rows] = await pool.query(query, values);
 
         res.json(rows);
 
