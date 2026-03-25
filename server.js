@@ -256,29 +256,37 @@ app.post("/submit-hostel-form", async (req, res) => {
     }
 });
 
-
 app.get("/get-blocks", async (req, res) => {
     try {
-        const role = req.query.role || "BHWARDEN";
+        const role = req.query.role;
 
-        const hostelType =
-            role === "BHWARDEN" ? "BOYS_HOSTEL" : "GIRLS_HOSTEL";
-
-        const [rows] = await db.query(`
+        let query = `
             SELECT DISTINCT block_name
             FROM hostel_admissions
-            WHERE residence_type = ?
-            ORDER BY block_name ASC
-        `, [hostelType]);
+        `;
+
+        let values = [];
+
+        // If role is provided → filter
+        if (role) {
+            const hostelType =
+                role === "BHWARDEN" ? "BOYS_HOSTEL" : "GIRLS_HOSTEL";
+
+            query += " WHERE residence_type = ?";
+            values.push(hostelType);
+        }
+
+        query += " ORDER BY block_name ASC";
+
+        const [rows] = await db.query(query, values);
 
         res.json(rows);
 
     } catch (err) {
         console.error("GET BLOCKS ERROR:", err);
-        res.json([]);
+        res.status(500).json({ error: "Server Error" });
     }
 });
-
 
 app.get("/get-rooms/:block", async (req, res) => {
     const block = req.params.block;
@@ -933,19 +941,6 @@ app.get("/student/details/:user_id", async (req, res) => {
 });
 
 
-app.get("/get-blocks", async (req, res) => {
-    try {
-        const [rows] = await db.execute(
-            `SELECT DISTINCT block_name FROM hostel_admissions`
-        );
-
-        res.json(rows);
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Server Error" });
-    }
-});
 
 app.get("/get-rooms", async (req, res) => {
     try {
