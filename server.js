@@ -1140,39 +1140,55 @@ app.post("/student/submit-complaint", async (req, res) => {
     }
 });
 
-app.get("/api/warden/complaints", (req, res) => {
+app.get("/api/warden/complaints", async (req, res) => {
+  try {
+    const { warden_id } = req.query;
 
-  const { warden_id } = req.query;
+    console.log("👉 Warden ID:", warden_id);
 
-  if (!warden_id) {
-    return res.status(400).json({ success: false, error: "Warden ID required" });
-  }
-
-  let residenceType;
-
-  if (warden_id.startsWith("BH")) {
-    residenceType = "BOYS_HOSTEL";
-  } else if (warden_id.startsWith("GH")) {
-    residenceType = "GIRLS_HOSTEL";
-  } else {
-    return res.status(400).json({ success: false, error: "Invalid Warden ID" });
-  }
-
-  const sql = `
-    SELECT hc.*
-    FROM hostel_complaints hc
-    JOIN hostel_admissions ha
-      ON hc.user_id LIKE CONCAT('%', ha.user_id, '%')
-    WHERE ha.residence_type = ?
-    ORDER BY hc.created_at DESC
-  `;
-
-  db.query(sql, [residenceType], (err, rows) => {
-
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ success: false, error: err.message });
+    if (!warden_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Warden ID required"
+      });
     }
+
+    let residenceType;
+
+    if (warden_id.startsWith("BH")) {
+      residenceType = "BOYS_HOSTEL";
+    } else if (warden_id.startsWith("GH")) {
+      residenceType = "GIRLS_HOSTEL";
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Warden ID"
+      });
+    }
+
+    console.log("👉 Residence Type:", residenceType);
+
+    const sql = `
+      SELECT 
+        hc.id,
+        hc.user_id,
+        hc.student_name,
+        hc.category,
+        hc.location,
+        hc.description,
+        hc.status,
+        hc.created_at,
+        hc.is_viewed,
+        ha.block_name,
+        ha.room_number
+      FROM hostel_complaints hc
+      INNER JOIN hostel_admissions ha
+        ON hc.user_id = ha.user_id
+      WHERE ha.residence_type = ?
+      ORDER BY hc.created_at DESC
+    `;
+
+    const [rows] = await db.execute(sql, [residenceType]);
 
     console.log("✅ FINAL ROWS:", rows);
 
@@ -1181,8 +1197,14 @@ app.get("/api/warden/complaints", (req, res) => {
       complaints: rows
     });
 
-  });
+  } catch (err) {
+    console.error("❌ ERROR:", err);
 
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
 });
 
 app.put("/api/warden/complaints/view/:id", async (req, res) => {
