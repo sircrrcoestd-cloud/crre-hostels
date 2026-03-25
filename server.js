@@ -17,15 +17,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 const publicPath = path.resolve(__dirname);
-// FORCE root to serve index.html
-app.get("/", (req, res) => {
-    res.sendFile(path.join(publicPath, "index.html"), (err) => {
-        if (err) {
-            console.error("Error sending index:", err);
-            res.status(500).send("Error loading page");
-        }
-    });
-});
+
 // Serve static files
 app.use(express.static(publicPath));
 
@@ -2036,5 +2028,14 @@ app.get("/get-students-by-year", async (req, res) => {
     }
 });
 
+// FORCE root to serve index.html
+app.get("/", (req, res) => {
+    res.sendFile(path.join(publicPath, "index.html"), (err) => {
+        if (err) {
+            console.error("Error sending index:", err);
+            res.status(500).send("Error loading page");
+        }
+    });
+});
 // Start server
 app.listen(3000, () => console.log("Hostel Management Server running on port 3000"));
