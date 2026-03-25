@@ -1143,21 +1143,25 @@ app.post("/student/submit-complaint", async (req, res) => {
 // GET complaints for logged-in warden
 app.get("/api/warden/complaints", async (req, res) => {
   try {
-    const wardenId = req.query.warden_id; // pass from frontend/session
+    const { warden_id } = req.query;
 
-    if (!wardenId) {
-      return res.status(400).json({ error: "Warden ID required" });
+    console.log("👉 Warden ID:", warden_id);
+
+    if (!warden_id) {
+      return res.status(400).json({ success: false, error: "Warden ID required" });
     }
 
-    // 🔥 Decide hostel type
-    let residenceType = "";
-    if (wardenId.startsWith("BH")) {
+    let residenceType;
+
+    if (warden_id.startsWith("BH")) {
       residenceType = "BOYS_HOSTEL";
-    } else if (wardenId.startsWith("GH")) {
+    } else if (warden_id.startsWith("GH")) {
       residenceType = "GIRLS_HOSTEL";
     } else {
-      return res.status(400).json({ error: "Invalid Warden ID" });
+      return res.status(400).json({ success: false, error: "Invalid Warden ID" });
     }
+
+    console.log("👉 Residence Type:", residenceType);
 
     const sql = `
       SELECT 
@@ -1169,25 +1173,36 @@ app.get("/api/warden/complaints", async (req, res) => {
         hc.description,
         hc.status,
         hc.created_at,
+        hc.is_viewed,
         ha.block_name,
         ha.room_number
       FROM hostel_complaints hc
-      JOIN hostel_admissions ha 
+      LEFT JOIN hostel_admissions ha 
         ON hc.user_id = ha.user_id
       WHERE ha.residence_type = ?
       ORDER BY hc.created_at DESC
     `;
 
+    console.log("👉 Running query...");
+
     const [rows] = await db.promise().query(sql, [residenceType]);
 
-    res.json({ success: true, complaints: rows });
+    console.log("✅ Rows:", rows.length);
+
+    res.json({
+      success: true,
+      complaints: rows
+    });
 
   } catch (err) {
-    console.error("❌ Error fetching complaints:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("❌ FULL ERROR:", err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message   // 🔥 IMPORTANT
+    });
   }
 });
-
 app.put("/api/warden/complaints/view/:id", async (req, res) => {
   try {
     const { id } = req.params;
